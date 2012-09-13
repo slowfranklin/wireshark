@@ -190,6 +190,8 @@ static int hf_smb2_ioctl_function = -1;
 static int hf_smb2_ioctl_function_device = -1;
 static int hf_smb2_ioctl_function_access = -1;
 static int hf_smb2_ioctl_function_function = -1;
+static int hf_smb2_fsctl_pipe_wait_timeout = -1;
+static int hf_smb2_fsctl_pipe_wait_name = -1;
 static int hf_smb2_ioctl_function_method = -1;
 static int hf_smb2_ioctl_resiliency_timeout = -1;
 static int hf_smb2_ioctl_resiliency_reserved = -1;
@@ -1137,6 +1139,7 @@ static const value_string smb2_ioctl_vals[] = {
   /* dissector implemented */
   {0x00060194, "FSCTL_DFS_GET_REFERRALS"},
   {0x0011C017, "FSCTL_PIPE_TRANSCEIVE"},
+  {0x00110018, "FSCTL_PIPE_WAIT"},
   {0x001401D4, "FSCTL_LMR_REQUEST_RESILIENCY"},
   {0x001401FC, "FSCTL_QUERY_NETWORK_INTERFACE_INFO"},
   {0x00140200, "FSCTL_VALIDATE_NEGOTIATE_INFO_224"},
@@ -4140,6 +4143,36 @@ dissect_smb2_FSCTL_PIPE_TRANSCEIVE(tvbuff_t *tvb, packet_info *pinfo, proto_tree
 }
 
 static void
+dissect_smb2_FSCTL_PIPE_WAIT(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, int offset, proto_tree *top_tree, gboolean data_in _U_)
+{
+	guint8 timeout_specified = tvb_get_guint8(tvb, offset + 12);
+	guint32 name_len = tvb_get_letohs(tvb, offset + 8);
+	const gchar *name;
+	int off = offset + 14;
+	guint16 bc = tvb_length_remaining(tvb, off);
+	int len = name_len;
+
+	/* sanity check */
+	tvb_ensure_bytes_exist(tvb, off, name_len);
+
+	name = get_unicode_or_ascii_string(tvb, &off, TRUE, &len, TRUE, TRUE, &bc);
+	if (name == NULL) {
+		name = "";
+	}
+
+	if (check_col(pinfo->cinfo, COL_INFO)) {
+		col_append_fstr(pinfo->cinfo, COL_INFO, " Pipe: %s", name);
+	}
+
+	if (top_tree) {
+		proto_tree_add_string(top_tree, hf_smb2_fsctl_pipe_wait_name, tvb, offset + 14, name_len, name);
+		if (timeout_specified) {
+			proto_tree_add_item(top_tree, hf_smb2_fsctl_pipe_wait_timeout, tvb, 0, 8, ENC_LITTLE_ENDIAN);
+		}
+	}
+}
+
+static void
 dissect_smb2_FSCTL_LMR_REQUEST_RESILIENCY(tvbuff_t *tvb, packet_info *pinfo _U_, proto_tree *tree, int offset, gboolean data_in)
 {
 	/* There is no out data */
@@ -4638,6 +4671,9 @@ dissect_smb2_ioctl_data(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, pro
 		break;
 	case 0x0011c017:
 		dissect_smb2_FSCTL_PIPE_TRANSCEIVE(tvb, pinfo, tree, 0, top_tree, data_in);
+		break;
+	case 0x00110018:
+		dissect_smb2_FSCTL_PIPE_WAIT(tvb, pinfo, tree, 0, top_tree, data_in);
 		break;
 	case 0x001401D4: /* FSCTL_LMR_REQUEST_RESILIENCY */
 		dissect_smb2_FSCTL_LMR_REQUEST_RESILIENCY(tvb, pinfo, tree, 0, data_in);
@@ -7645,6 +7681,14 @@ proto_register_smb2(void)
 	{ &hf_smb2_ioctl_function_method,
 		{ "Method", "smb2.ioctl.function.method", FT_UINT32, BASE_HEX,
 		VALS(smb2_ioctl_method_vals), 0x00000003, "Method for Ioctl", HFILL }},
+
+	{ &hf_smb2_fsctl_pipe_wait_timeout,
+		{ "Timeout", "smb2.fsctl.wait.timeout", FT_INT64, BASE_DEC,
+		NULL, 0, "Wait timeout", HFILL }},
+
+	{ &hf_smb2_fsctl_pipe_wait_name,
+		{ "Name", "smb2.fsctl.wait.name", FT_STRING, BASE_NONE,
+		NULL, 0, "Pipe name", HFILL }},
 
 	{ &hf_smb2_ioctl_resiliency_timeout,
 		{ "Timeout", "smb2.ioctl.resiliency.timeout", FT_UINT32, BASE_DEC,
