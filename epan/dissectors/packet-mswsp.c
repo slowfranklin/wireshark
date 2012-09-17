@@ -1,18 +1,12 @@
-/* packet-PROTOABBREV.c
+/* packet-MSWSP.c
  * Routines for PROTONAME dissection
- * Copyright 201x, YOUR_NAME <YOUR_EMAIL_ADDRESS>
+ * Copyright 2012, Gregor Beck <gregor.beck@sernet.de>
  *
  * $Id$
  *
  * Wireshark - Network traffic analyzer
  * By Gerald Combs <gerald@wireshark.org>
  * Copyright 1998 Gerald Combs
- *
- * Copied from WHATEVER_FILE_YOU_USED (where "WHATEVER_FILE_YOU_USED"
- * is a dissector file; if you just copied this from README.developer,
- * don't bother with the "Copied from" - you don't even need to put
- * in a "Copied from" if you copied an existing dissector, especially
- * if the bulk of the code in the new dissector is your code)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -216,8 +210,8 @@ proto_register_MSWSP(void)
 	};
 
 /* Register the protocol name and description */
-	proto_MSWSP = proto_register_protocol("PROTONAME",
-	    "PROTOSHORTNAME", "MSWSP");
+	proto_MSWSP = proto_register_protocol("Windows Search Protocoll",
+	    "MS-WSP", "MSWSP");
 
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_MSWSP, hf, array_length(hf));
