@@ -47,15 +47,15 @@
 
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
-#include "packet-PROTOABBREV.h"
+#include "packet-MSWSP.h"
 
 /* Forward declaration we need below (if using proto_reg_handoff...
    as a prefs callback)       */
-void proto_reg_handoff_PROTOABBREV(void);
+void proto_reg_handoff_MSWSP(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_PROTOABBREV = -1;
-static int hf_PROTOABBREV_FIELDABBREV = -1;
+static int proto_MSWSP = -1;
+static int hf_MSWSP_FIELDABBREV = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -63,16 +63,16 @@ static gboolean gPREF_HEX = FALSE;
 static guint gPORT_PREF = 1234;
 
 /* Initialize the subtree pointers */
-static gint ett_PROTOABBREV = -1;
+static gint ett_MSWSP = -1;
 
 /* Code to actually dissect the packets */
 static int
-dissect_PROTOABBREV(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
 
 /* Set up structures needed to add the protocol subtree and manage it */
 	proto_item *ti;
-	proto_tree *PROTOABBREV_tree;
+	proto_tree *MSWSP_tree;
 
 /*  First, if at all possible, do some heuristics to check if the packet cannot
  *  possibly belong to your protocol.  This is especially important for
@@ -94,7 +94,7 @@ dissect_PROTOABBREV(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 		return 0;
 
 /* Make entries in Protocol column and Info column on summary display */
-	col_set_str(pinfo->cinfo, COL_PROTOCOL, "PROTOABBREV");
+	col_set_str(pinfo->cinfo, COL_PROTOCOL, "MSWSP");
 
 /* This field shows up as the "Info" column in the display; you should use
    it, if possible, to summarize what's in the packet, so that a user looking
@@ -169,13 +169,13 @@ dissect_PROTOABBREV(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
    offset to the end of the packet. */
 
 /* create display subtree for the protocol */
-		ti = proto_tree_add_item(tree, proto_PROTOABBREV, tvb, 0, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, proto_MSWSP, tvb, 0, -1, ENC_NA);
 
-		PROTOABBREV_tree = proto_item_add_subtree(ti, ett_PROTOABBREV);
+		MSWSP_tree = proto_item_add_subtree(ti, ett_MSWSP);
 
 /* add an item to the subtree, see section 1.6 for more information */
-		proto_tree_add_item(PROTOABBREV_tree,
-		    hf_PROTOABBREV_FIELDABBREV, tvb, offset, len, ENC_xxx);
+		proto_tree_add_item(MSWSP_tree,
+		    hf_MSWSP_FIELDABBREV, tvb, offset, len, ENC_xxx);
 
 
 /* Continue adding tree items to process the packet here */
@@ -197,14 +197,14 @@ dissect_PROTOABBREV(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 */
 
 void
-proto_register_PROTOABBREV(void)
+proto_register_MSWSP(void)
 {
-	module_t *PROTOABBREV_module;
+	module_t *MSWSP_module;
 
 /* Setup list of header fields  See Section 1.6.1 for details*/
 	static hf_register_info hf[] = {
-		{ &hf_PROTOABBREV_FIELDABBREV,
-			{ "FIELDNAME",           "PROTOABBREV.FIELDABBREV",
+		{ &hf_MSWSP_FIELDABBREV,
+			{ "FIELDNAME",           "MSWSP.FIELDABBREV",
 			FIELDTYPE, FIELDDISPLAY, FIELDCONVERT, BITMASK,
 			"FIELDDESCR", HFILL }
 		}
@@ -212,15 +212,15 @@ proto_register_PROTOABBREV(void)
 
 /* Setup protocol subtree array */
 	static gint *ett[] = {
-		&ett_PROTOABBREV
+		&ett_MSWSP
 	};
 
 /* Register the protocol name and description */
-	proto_PROTOABBREV = proto_register_protocol("PROTONAME",
-	    "PROTOSHORTNAME", "PROTOABBREV");
+	proto_MSWSP = proto_register_protocol("PROTONAME",
+	    "PROTOSHORTNAME", "MSWSP");
 
 /* Required function calls to register the header fields and subtrees used */
-	proto_register_field_array(proto_PROTOABBREV, hf, array_length(hf));
+	proto_register_field_array(proto_MSWSP, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
@@ -228,9 +228,9 @@ proto_register_PROTOABBREV(void)
 /*  prefs-dependent registration functions (eg: a port pref).            */
 /*  See proto_reg_handoff below.                                         */
 /*  If a prefs callback is not needed, use NULL instead of               */
-/*  proto_reg_handoff_PROTOABBREV in the following).                     */
-	PROTOABBREV_module = prefs_register_protocol(proto_PROTOABBREV,
-	    proto_reg_handoff_PROTOABBREV);
+/*  proto_reg_handoff_MSWSP in the following).                     */
+	MSWSP_module = prefs_register_protocol(proto_MSWSP,
+	    proto_reg_handoff_MSWSP);
 
 /* Register preferences module under preferences subtree.
    Use this function instead of prefs_register_protocol if you want to group
@@ -239,18 +239,18 @@ proto_register_PROTOABBREV(void)
    specified using slash '/' (e.g. "OSI/X.500" - protocol preferences will be
    accessible under Protocols->OSI->X.500-><PROTOSHORTNAME> preferences node.
 */
-  PROTOABBREV_module = prefs_register_protocol_subtree(const char *subtree,
-       proto_PROTOABBREV, proto_reg_handoff_PROTOABBREV);
+  MSWSP_module = prefs_register_protocol_subtree(const char *subtree,
+       proto_MSWSP, proto_reg_handoff_MSWSP);
 
 /* Register a sample preference */
-	prefs_register_bool_preference(PROTOABBREV_module, "show_hex",
+	prefs_register_bool_preference(MSWSP_module, "show_hex",
 	     "Display numbers in Hex",
 	     "Enable to display numerical values in hexadecimal.",
 	     &gPREF_HEX);
 
 /* Register a sample port preference   */
-	prefs_register_uint_preference(PROTOABBREV_module, "tcp.port", "PROTOABBREV TCP Port",
-	     " PROTOABBREV TCP port if other than the default",
+	prefs_register_uint_preference(MSWSP_module, "tcp.port", "MSWSP TCP Port",
+	     " MSWSP TCP port if other than the default",
 	     10, &gPORT_PREF);
 }
 
@@ -269,20 +269,20 @@ proto_register_PROTOABBREV(void)
    prefs-dependent registration functions.
 */
 void
-proto_reg_handoff_PROTOABBREV(void)
+proto_reg_handoff_MSWSP(void)
 {
 	static gboolean initialized = FALSE;
-        static dissector_handle_t PROTOABBREV_handle;
+        static dissector_handle_t MSWSP_handle;
         static int currentPort;
 
 	if (!initialized) {
 
-/*  Use new_create_dissector_handle() to indicate that dissect_PROTOABBREV()
+/*  Use new_create_dissector_handle() to indicate that dissect_MSWSP()
  *  returns the number of bytes it dissected (or 0 if it thinks the packet
  *  does not belong to PROTONAME).
  */
-		PROTOABBREV_handle = new_create_dissector_handle(dissect_PROTOABBREV,
-								 proto_PROTOABBREV);
+		MSWSP_handle = new_create_dissector_handle(dissect_MSWSP,
+								 proto_MSWSP);
 		initialized = TRUE;
 	} else {
 
@@ -291,38 +291,38 @@ proto_reg_handoff_PROTOABBREV(void)
 		  prefs the you should de-register everything which was associated
 		  with the previous settings and re-register using the new prefs
 		  settings here. In general this means you need to keep track of
-		  the PROTOABBREV_handle and the value the preference had at the time
-		  you registered.  The PROTOABBREV_handle value and the value of the
+		  the MSWSP_handle and the value the preference had at the time
+		  you registered.  The MSWSP_handle value and the value of the
 		  preference can be saved using local statics in this
 		  function (proto_reg_handoff).
 		*/
 
-		dissector_delete_uint("tcp.port", currentPort, PROTOABBREV_handle);
+		dissector_delete_uint("tcp.port", currentPort, MSWSP_handle);
 	}
 
 	currentPort = gPORT_PREF;
 
-	dissector_add_uint("tcp.port", currentPort, PROTOABBREV_handle);
+	dissector_add_uint("tcp.port", currentPort, MSWSP_handle);
 
 }
 
 #if 0
-/* Simple form of proto_reg_handoff_PROTOABBREV which can be used if there are
+/* Simple form of proto_reg_handoff_MSWSP which can be used if there are
    no prefs-dependent registration function calls.
  */
 
 void
-proto_reg_handoff_PROTOABBREV(void)
+proto_reg_handoff_MSWSP(void)
 {
-	dissector_handle_t PROTOABBREV_handle;
+	dissector_handle_t MSWSP_handle;
 
-/*  Use new_create_dissector_handle() to indicate that dissect_PROTOABBREV()
+/*  Use new_create_dissector_handle() to indicate that dissect_MSWSP()
  *  returns the number of bytes it dissected (or 0 if it thinks the packet
  *  does not belong to PROTONAME).
  */
-	PROTOABBREV_handle = new_create_dissector_handle(dissect_PROTOABBREV,
-							 proto_PROTOABBREV);
-	dissector_add_uint("PARENT_SUBFIELD", ID_VALUE, PROTOABBREV_handle);
+	MSWSP_handle = new_create_dissector_handle(dissect_MSWSP,
+							 proto_MSWSP);
+	dissector_add_uint("PARENT_SUBFIELD", ID_VALUE, MSWSP_handle);
 }
 #endif
 
