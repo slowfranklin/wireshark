@@ -1260,7 +1260,8 @@ DISSECTOR_SRC = \
 # Files that create warnings while building
 #
 DIRTY_DISSECTOR_SRC = \
-	packet-x11.c
+	packet-x11.c \
+	packet-mswsp.c
 
 #
 # Headers for dissectors.

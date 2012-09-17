@@ -27,12 +27,10 @@
 # include "config.h"
 #endif
 
-#if 0
 /* Include only as needed */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#endif
 
 #include <glib.h>
 
@@ -41,7 +39,9 @@
 
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
-#include "packet-MSWSP.h"
+/*
+ * #include "packet-MSWSP.h"
+ */
 
 /* Forward declaration we need below (if using proto_reg_handoff...
    as a prefs callback)       */
@@ -68,6 +68,8 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 	proto_item *ti;
 	proto_tree *MSWSP_tree;
 
+	fprintf(stderr, "dissect_MSWSP\n");
+
 /*  First, if at all possible, do some heuristics to check if the packet cannot
  *  possibly belong to your protocol.  This is especially important for
  *  protocols directly on top of TCP or UDP where port collisions are
@@ -77,15 +79,18 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
  *  in Wireshark handing an HTTP packet to your dissector).  For example:
  */
 	/* Check that there's enough data */
-	if (tvb_length(tvb) < /* your protocol's smallest packet size */)
+	if (tvb_length(tvb) < 16 /* WSP Header size */)
 		return 0;
 
+#if 0
+	Check if we are on pipe MsFteWds
 	/* Get some values from the packet header, probably using tvb_get_*() */
 	if ( /* these values are not possible in PROTONAME */ )
 		/*  This packet does not appear to belong to PROTONAME.
 		 *  Return 0 to give another dissector a chance to dissect it.
 		 */
 		return 0;
+#endif
 
 /* Make entries in Protocol column and Info column on summary display */
 	col_set_str(pinfo->cinfo, COL_PROTOCOL, "MSWSP");
@@ -168,8 +173,8 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 		MSWSP_tree = proto_item_add_subtree(ti, ett_MSWSP);
 
 /* add an item to the subtree, see section 1.6 for more information */
-		proto_tree_add_item(MSWSP_tree,
-		    hf_MSWSP_FIELDABBREV, tvb, offset, len, ENC_xxx);
+		/* proto_tree_add_item(MSWSP_tree, */
+		/*     hf_MSWSP_FIELDABBREV, tvb, offset, len, ENC_xxx); */
 
 
 /* Continue adding tree items to process the packet here */
@@ -199,7 +204,7 @@ proto_register_MSWSP(void)
 	static hf_register_info hf[] = {
 		{ &hf_MSWSP_FIELDABBREV,
 			{ "FIELDNAME",           "MSWSP.FIELDABBREV",
-			FIELDTYPE, FIELDDISPLAY, FIELDCONVERT, BITMASK,
+			FT_NONE, BASE_NONE , NULL, 0,
 			"FIELDDESCR", HFILL }
 		}
 	};
@@ -233,8 +238,8 @@ proto_register_MSWSP(void)
    specified using slash '/' (e.g. "OSI/X.500" - protocol preferences will be
    accessible under Protocols->OSI->X.500-><PROTOSHORTNAME> preferences node.
 */
-  MSWSP_module = prefs_register_protocol_subtree(const char *subtree,
-       proto_MSWSP, proto_reg_handoff_MSWSP);
+  /* MSWSP_module = prefs_register_protocol_subtree(subtree, */
+  /*      proto_MSWSP, proto_reg_handoff_MSWSP); */
 
 /* Register a sample preference */
 	prefs_register_bool_preference(MSWSP_module, "show_hex",
@@ -257,68 +262,16 @@ proto_register_MSWSP(void)
    above) this function is also called by preferences whenever "Apply" is pressed;
    In that case, it should accommodate being called more than once.
 
-   This form of the reg_handoff function is used if if you perform
-   registration functions which are dependent upon prefs. See below
-   for a simpler form  which can be used if there are no
-   prefs-dependent registration functions.
-*/
-void
-proto_reg_handoff_MSWSP(void)
-{
-	static gboolean initialized = FALSE;
-        static dissector_handle_t MSWSP_handle;
-        static int currentPort;
-
-	if (!initialized) {
-
-/*  Use new_create_dissector_handle() to indicate that dissect_MSWSP()
- *  returns the number of bytes it dissected (or 0 if it thinks the packet
- *  does not belong to PROTONAME).
- */
-		MSWSP_handle = new_create_dissector_handle(dissect_MSWSP,
-								 proto_MSWSP);
-		initialized = TRUE;
-	} else {
-
-		/*
-		  If you perform registration functions which are dependent upon
-		  prefs the you should de-register everything which was associated
-		  with the previous settings and re-register using the new prefs
-		  settings here. In general this means you need to keep track of
-		  the MSWSP_handle and the value the preference had at the time
-		  you registered.  The MSWSP_handle value and the value of the
-		  preference can be saved using local statics in this
-		  function (proto_reg_handoff).
-		*/
-
-		dissector_delete_uint("tcp.port", currentPort, MSWSP_handle);
-	}
-
-	currentPort = gPORT_PREF;
-
-	dissector_add_uint("tcp.port", currentPort, MSWSP_handle);
-
-}
-
-#if 0
-/* Simple form of proto_reg_handoff_MSWSP which can be used if there are
+   Simple form of proto_reg_handoff_MSWSP which can be used if there are
    no prefs-dependent registration function calls.
  */
 
 void
 proto_reg_handoff_MSWSP(void)
 {
-	dissector_handle_t MSWSP_handle;
-
-/*  Use new_create_dissector_handle() to indicate that dissect_MSWSP()
- *  returns the number of bytes it dissected (or 0 if it thinks the packet
- *  does not belong to PROTONAME).
- */
-	MSWSP_handle = new_create_dissector_handle(dissect_MSWSP,
-							 proto_MSWSP);
-	dissector_add_uint("PARENT_SUBFIELD", ID_VALUE, MSWSP_handle);
+    heur_dissector_add("smb_transact", dissect_MSWSP, proto_MSWSP);
+    heur_dissector_add("smb2_heur_subdissectors", dissect_MSWSP, proto_MSWSP);
 }
-#endif
 
 
 /*
