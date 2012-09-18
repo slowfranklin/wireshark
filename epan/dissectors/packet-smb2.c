@@ -1424,6 +1424,7 @@ dissect_smb2_fid(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, int offset
 				proto_item_append_text(hnd_item, " %s", fid_name);
 			}
 			col_append_fstr(pinfo->cinfo, COL_INFO, " %s", fid_name);
+			pinfo->dcerpc_procedure_name = fid_name;
 		}
 
 		/* look for the eo_file_info */

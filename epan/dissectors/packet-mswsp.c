@@ -68,7 +68,9 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 	proto_item *ti;
 	proto_tree *mswsp_tree;
 
-	fprintf(stderr, "dissect_mswsp\n");
+	fprintf(stderr, "dissect_mswsp: %s dceidx: %d\n",
+		pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
+		(int)pinfo->dcectxid);
 
 /*  First, if at all possible, do some heuristics to check if the packet cannot
  *  possibly belong to your protocol.  This is especially important for
@@ -78,11 +80,16 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
  *  if someone analyzed that web server's traffic in Wireshark, would result
  *  in Wireshark handing an HTTP packet to your dissector).  For example:
  */
+
+	if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+		return 0;
+	}
+
+#if 0
 	/* Check that there's enough data */
 	if (tvb_length(tvb) < 16 /* WSP Header size */)
 		return 0;
 
-#if 0
 	Check if we are on pipe MsFteWds
 	/* Get some values from the packet header, probably using tvb_get_*() */
 	if ( /* these values are not possible in PROTONAME */ )
