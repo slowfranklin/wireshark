@@ -1,4 +1,4 @@
-/* packet-MSWSP.c
+/* packet-mswsp.c
  * Routines for PROTONAME dissection
  * Copyright 2012, Gregor Beck <gregor.beck@sernet.de>
  *
@@ -40,16 +40,16 @@
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
 /*
- * #include "packet-MSWSP.h"
+ * #include "packet-mswsp.h"
  */
 
 /* Forward declaration we need below (if using proto_reg_handoff...
    as a prefs callback)       */
-void proto_reg_handoff_MSWSP(void);
+void proto_reg_handoff_mswsp(void);
 
 /* Initialize the protocol and registered fields */
-static int proto_MSWSP = -1;
-static int hf_MSWSP_FIELDABBREV = -1;
+static int proto_mswsp = -1;
+static int hf_mswsp_FIELDABBREV = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -57,18 +57,18 @@ static gboolean gPREF_HEX = FALSE;
 static guint gPORT_PREF = 1234;
 
 /* Initialize the subtree pointers */
-static gint ett_MSWSP = -1;
+static gint ett_mswsp = -1;
 
 /* Code to actually dissect the packets */
 static int
-dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
 
 /* Set up structures needed to add the protocol subtree and manage it */
 	proto_item *ti;
-	proto_tree *MSWSP_tree;
+	proto_tree *mswsp_tree;
 
-	fprintf(stderr, "dissect_MSWSP\n");
+	fprintf(stderr, "dissect_mswsp\n");
 
 /*  First, if at all possible, do some heuristics to check if the packet cannot
  *  possibly belong to your protocol.  This is especially important for
@@ -93,7 +93,7 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 #endif
 
 /* Make entries in Protocol column and Info column on summary display */
-	col_set_str(pinfo->cinfo, COL_PROTOCOL, "MSWSP");
+	col_set_str(pinfo->cinfo, COL_PROTOCOL, "mswsp");
 
 /* This field shows up as the "Info" column in the display; you should use
    it, if possible, to summarize what's in the packet, so that a user looking
@@ -168,13 +168,13 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
    offset to the end of the packet. */
 
 /* create display subtree for the protocol */
-		ti = proto_tree_add_item(tree, proto_MSWSP, tvb, 0, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, proto_mswsp, tvb, 0, -1, ENC_NA);
 
-		MSWSP_tree = proto_item_add_subtree(ti, ett_MSWSP);
+		mswsp_tree = proto_item_add_subtree(ti, ett_mswsp);
 
 /* add an item to the subtree, see section 1.6 for more information */
-		/* proto_tree_add_item(MSWSP_tree, */
-		/*     hf_MSWSP_FIELDABBREV, tvb, offset, len, ENC_xxx); */
+		/* proto_tree_add_item(mswsp_tree, */
+		/*     hf_mswsp_FIELDABBREV, tvb, offset, len, ENC_xxx); */
 
 
 /* Continue adding tree items to process the packet here */
@@ -196,14 +196,14 @@ dissect_MSWSP(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 */
 
 void
-proto_register_MSWSP(void)
+proto_register_mswsp(void)
 {
-	module_t *MSWSP_module;
+	module_t *mswsp_module;
 
 /* Setup list of header fields  See Section 1.6.1 for details*/
 	static hf_register_info hf[] = {
-		{ &hf_MSWSP_FIELDABBREV,
-			{ "FIELDNAME",           "MSWSP.FIELDABBREV",
+		{ &hf_mswsp_FIELDABBREV,
+			{ "FIELDNAME",           "mswsp.FIELDABBREV",
 			FT_NONE, BASE_NONE , NULL, 0,
 			"FIELDDESCR", HFILL }
 		}
@@ -211,15 +211,15 @@ proto_register_MSWSP(void)
 
 /* Setup protocol subtree array */
 	static gint *ett[] = {
-		&ett_MSWSP
+		&ett_mswsp
 	};
 
 /* Register the protocol name and description */
-	proto_MSWSP = proto_register_protocol("Windows Search Protocoll",
-	    "MS-WSP", "MSWSP");
+	proto_mswsp = proto_register_protocol("Windows Search Protocol",
+	    "MS-WSP", "mswsp");
 
 /* Required function calls to register the header fields and subtrees used */
-	proto_register_field_array(proto_MSWSP, hf, array_length(hf));
+	proto_register_field_array(proto_mswsp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
@@ -227,9 +227,9 @@ proto_register_MSWSP(void)
 /*  prefs-dependent registration functions (eg: a port pref).            */
 /*  See proto_reg_handoff below.                                         */
 /*  If a prefs callback is not needed, use NULL instead of               */
-/*  proto_reg_handoff_MSWSP in the following).                     */
-	MSWSP_module = prefs_register_protocol(proto_MSWSP,
-	    proto_reg_handoff_MSWSP);
+/*  proto_reg_handoff_mswsp in the following).                     */
+	mswsp_module = prefs_register_protocol(proto_mswsp,
+	    proto_reg_handoff_mswsp);
 
 /* Register preferences module under preferences subtree.
    Use this function instead of prefs_register_protocol if you want to group
@@ -238,18 +238,18 @@ proto_register_MSWSP(void)
    specified using slash '/' (e.g. "OSI/X.500" - protocol preferences will be
    accessible under Protocols->OSI->X.500-><PROTOSHORTNAME> preferences node.
 */
-  /* MSWSP_module = prefs_register_protocol_subtree(subtree, */
-  /*      proto_MSWSP, proto_reg_handoff_MSWSP); */
+  /* mswsp_module = prefs_register_protocol_subtree(subtree, */
+  /*      proto_mswsp, proto_reg_handoff_mswsp); */
 
 /* Register a sample preference */
-	prefs_register_bool_preference(MSWSP_module, "show_hex",
+	prefs_register_bool_preference(mswsp_module, "show_hex",
 	     "Display numbers in Hex",
 	     "Enable to display numerical values in hexadecimal.",
 	     &gPREF_HEX);
 
 /* Register a sample port preference   */
-	prefs_register_uint_preference(MSWSP_module, "tcp.port", "MSWSP TCP Port",
-	     " MSWSP TCP port if other than the default",
+	prefs_register_uint_preference(mswsp_module, "tcp.port", "mswsp TCP Port",
+	     " mswsp TCP port if other than the default",
 	     10, &gPORT_PREF);
 }
 
@@ -262,15 +262,15 @@ proto_register_MSWSP(void)
    above) this function is also called by preferences whenever "Apply" is pressed;
    In that case, it should accommodate being called more than once.
 
-   Simple form of proto_reg_handoff_MSWSP which can be used if there are
+   Simple form of proto_reg_handoff_mswsp which can be used if there are
    no prefs-dependent registration function calls.
  */
 
 void
-proto_reg_handoff_MSWSP(void)
+proto_reg_handoff_mswsp(void)
 {
-    heur_dissector_add("smb_transact", dissect_MSWSP, proto_MSWSP);
-    heur_dissector_add("smb2_heur_subdissectors", dissect_MSWSP, proto_MSWSP);
+    heur_dissector_add("smb_transact", dissect_mswsp, proto_mswsp);
+    heur_dissector_add("smb2_heur_subdissectors", dissect_mswsp, proto_mswsp);
 }
 
 
