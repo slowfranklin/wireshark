@@ -202,6 +202,30 @@ proto_register_mswsp(void)
 	module_t *mswsp_module;
 
 /* Setup list of header fields  See Section 1.6.1 for details*/
+        static const value_string msg_ids[] = {
+            {0x000000C8, "CPMConnect"},                /* In/Out */
+            {0x000000C9, "CPMDisconnect"},
+            {0x000000CA, "CPMCreateQuery"},            /* In/Out */
+            {0x000000CB, "CPMFreeCursor"},             /* In/Out */
+            {0x000000CC, "CPMGetRows"},                /* In/Out */
+            {0x000000CD, "CPMRatioFinished"},          /* In/Out */
+            {0x000000CE, "CPMCompareBmk"},             /* In/Out */
+            {0x000000CF, "CPMGetApproximatePosition"}, /* In/Out */
+            {0x000000D0, "CPMSetBindingsIn"},
+            {0x000000D1, "CPMGetNotify"},
+            {0x000000D2, "CPMSendNotifyOut"},
+            {0x000000D7, "CPMGetQueryStatusIn"},       /* In/Out */
+            {0x000000D9, "CPMCiStateInOut"},
+            {0x000000E4, "CPMFetchValue"},             /* In/Out */
+            {0x000000E7, "CPMGetQueryStatusEx"},       /* In/Out */
+            {0x000000E8, "CPMRestartPositionIn"},
+            {0x000000EC, "CPMSetCatStateIn"},          /* (not supported) */
+            {0x000000F1, "CPMGetRowsetNotify"},        /* In/Out */
+            {0x000000F2, "CPMFindIndices"},            /* In/Out */
+            {0x000000F3, "CPMSetScopePrioritization"}, /* In/Out */
+            {0x000000F4, "CPMGetScopeStatistics"},     /* In/Out */
+        };
+
 	static hf_register_info hf[] = {
 		{ &hf_mswsp_hdr,
 			{ "Header",           "mswsp.hdr",
@@ -215,8 +239,8 @@ proto_register_mswsp(void)
 		},
 		{ &hf_mswsp_hdr_msg,
 			{ "msg",           "mswsp.hdr.msg",
-			FT_UINT32, BASE_HEX , NULL, 0,
-			"Header message", HFILL }
+                          FT_UINT32, BASE_HEX , VALS(msg_ids), 0,
+			"Message id", HFILL }
 		},
 		{ &hf_mswsp_hdr_status,
 			{ "status",           "mswsp.hdr.status",
