@@ -49,7 +49,11 @@ void proto_reg_handoff_mswsp(void);
 
 /* Initialize the protocol and registered fields */
 static int proto_mswsp = -1;
-static int hf_mswsp_FIELDABBREV = -1;
+static int hf_mswsp_bdy = -1;
+static int hf_mswsp_hdr = -1;
+static int hf_mswsp_hdr_msg = -1;
+static int hf_mswsp_hdr_status = -1;
+static int hf_mswsp_hdr_crc = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -58,6 +62,8 @@ static guint gPORT_PREF = 1234;
 
 /* Initialize the subtree pointers */
 static gint ett_mswsp = -1;
+static gint ett_mswsp_hdr = -1;
+static gint ett_mswsp_bdy = -1;
 
 /* Code to actually dissect the packets */
 static int
@@ -65,12 +71,9 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
 
 /* Set up structures needed to add the protocol subtree and manage it */
-	proto_item *ti;
-	proto_tree *mswsp_tree;
-
-	fprintf(stderr, "dissect_mswsp: %s dceidx: %d\n",
-		pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
-		(int)pinfo->dcectxid);
+    fprintf(stderr, "dissect_mswsp: %s dceidx: %d\n",
+            pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
+            (int)pinfo->dcectxid);
 
 /*  First, if at all possible, do some heuristics to check if the packet cannot
  *  possibly belong to your protocol.  This is especially important for
@@ -81,26 +84,12 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
  *  in Wireshark handing an HTTP packet to your dissector).  For example:
  */
 
-	if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
-		return 0;
-	}
-
-#if 0
-	/* Check that there's enough data */
-	if (tvb_length(tvb) < 16 /* WSP Header size */)
-		return 0;
-
-	Check if we are on pipe MsFteWds
-	/* Get some values from the packet header, probably using tvb_get_*() */
-	if ( /* these values are not possible in PROTONAME */ )
-		/*  This packet does not appear to belong to PROTONAME.
-		 *  Return 0 to give another dissector a chance to dissect it.
-		 */
-		return 0;
-#endif
+    if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+        return 0;
+    }
 
 /* Make entries in Protocol column and Info column on summary display */
-	col_set_str(pinfo->cinfo, COL_PROTOCOL, "mswsp");
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "mswsp");
 
 /* This field shows up as the "Info" column in the display; you should use
    it, if possible, to summarize what's in the packet, so that a user looking
@@ -128,7 +117,7 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
    */
 
-	col_set_str(pinfo->cinfo, COL_INFO, "XXX Request");
+    col_add_str(pinfo->cinfo, COL_INFO, "WSP");
 
 /* A protocol dissector may be called in 2 different ways - with, or
    without a non-null "tree" argument.
@@ -164,30 +153,34 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
    called, whether "tree" will be null or not; your dissector must work
    correctly, building or updating whatever state information is
    necessary, in either case. */
-	if (tree) {
+    if (tree) {
+        proto_item *ti, *hti, *bti;
+        proto_tree *mswsp_tree, *mswsp_hdr_tree, *mswsp_bdy_tree;
 
-/* NOTE: The offset and length values in the call to
-   "proto_tree_add_item()" define what data bytes to highlight in the hex
-   display window when the line in the protocol tree display
-   corresponding to that item is selected.
+        ti = proto_tree_add_item(tree, proto_mswsp, tvb, 0, -1, ENC_NA);
 
-   Supplying a length of -1 is the way to highlight all data from the
-   offset to the end of the packet. */
+        mswsp_tree = proto_item_add_subtree(ti, ett_mswsp);
 
-/* create display subtree for the protocol */
-		ti = proto_tree_add_item(tree, proto_mswsp, tvb, 0, -1, ENC_NA);
+        hti = proto_tree_add_item(mswsp_tree, hf_mswsp_hdr, tvb, 0, 16, ENC_NA);
+        bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA);
 
-		mswsp_tree = proto_item_add_subtree(ti, ett_mswsp);
+        mswsp_hdr_tree = proto_item_add_subtree(hti, ett_mswsp_hdr);
+        mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_bdy);
 
-/* add an item to the subtree, see section 1.6 for more information */
-		/* proto_tree_add_item(mswsp_tree, */
-		/*     hf_mswsp_FIELDABBREV, tvb, offset, len, ENC_xxx); */
+        proto_tree_add_item(mswsp_hdr_tree,
+                            hf_mswsp_hdr_msg, tvb, 0, 4, ENC_LITTLE_ENDIAN);
+
+        proto_tree_add_item(mswsp_hdr_tree,
+                            hf_mswsp_hdr_status, tvb, 4, 4, ENC_LITTLE_ENDIAN);
+
+        proto_tree_add_item(mswsp_hdr_tree,
+                            hf_mswsp_hdr_crc, tvb, 8, 4, ENC_LITTLE_ENDIAN);
+
+        /* proto_tree_add_item(mswsp_hdr_tree, */
+        /*                     hf_mswsp_hdr_reserved, tvb, 12, 4, ENC_LITTLE_ENDIAN); */
 
 
-/* Continue adding tree items to process the packet here */
-
-
-	}
+    }
 
 /* If this protocol has a sub-dissector call it here, see section 1.8 */
 
@@ -209,21 +202,43 @@ proto_register_mswsp(void)
 
 /* Setup list of header fields  See Section 1.6.1 for details*/
 	static hf_register_info hf[] = {
-		{ &hf_mswsp_FIELDABBREV,
-			{ "FIELDNAME",           "mswsp.FIELDABBREV",
+		{ &hf_mswsp_hdr,
+			{ "Header",           "mswsp.hdr",
 			FT_NONE, BASE_NONE , NULL, 0,
-			"FIELDDESCR", HFILL }
-		}
+			"Message header", HFILL }
+		},
+		{ &hf_mswsp_bdy,
+			{ "Body",           "mswsp.body",
+			FT_NONE, BASE_NONE , NULL, 0,
+			"Message body", HFILL }
+		},
+		{ &hf_mswsp_hdr_msg,
+			{ "msg",           "mswsp.hdr.msg",
+			FT_UINT32, BASE_HEX , NULL, 0,
+			"Header message", HFILL }
+		},
+		{ &hf_mswsp_hdr_status,
+			{ "status",           "mswsp.hdr.status",
+			FT_UINT32, BASE_HEX , NULL, 0,
+			"Header status", HFILL }
+		},
+		{ &hf_mswsp_hdr_crc,
+			{ "crc",           "mswsp.hdr.crc",
+			FT_UINT32, BASE_HEX , NULL, 0,
+			"Header checksum", HFILL }
+		},
 	};
 
 /* Setup protocol subtree array */
 	static gint *ett[] = {
-		&ett_mswsp
+            &ett_mswsp,
+            &ett_mswsp_hdr,
+            &ett_mswsp_bdy,
 	};
 
 /* Register the protocol name and description */
 	proto_mswsp = proto_register_protocol("Windows Search Protocol",
-	    "MS-WSP", "mswsp");
+                                              "MS-WSP", "mswsp");
 
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_mswsp, hf, array_length(hf));
