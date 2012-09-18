@@ -154,18 +154,15 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
    correctly, building or updating whatever state information is
    necessary, in either case. */
     if (tree) {
-        proto_item *ti, *hti, *bti;
-        proto_tree *mswsp_tree, *mswsp_hdr_tree, *mswsp_bdy_tree;
+        proto_item *ti=NULL, *hti=NULL, *bti=NULL;
+        proto_tree *mswsp_tree=NULL, *mswsp_hdr_tree=NULL, *mswsp_bdy_tree=NULL;
 
         ti = proto_tree_add_item(tree, proto_mswsp, tvb, 0, -1, ENC_NA);
 
         mswsp_tree = proto_item_add_subtree(ti, ett_mswsp);
 
         hti = proto_tree_add_item(mswsp_tree, hf_mswsp_hdr, tvb, 0, 16, ENC_NA);
-        bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA);
-
         mswsp_hdr_tree = proto_item_add_subtree(hti, ett_mswsp_hdr);
-        mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_bdy);
 
         proto_tree_add_item(mswsp_hdr_tree,
                             hf_mswsp_hdr_msg, tvb, 0, 4, ENC_LITTLE_ENDIAN);
@@ -179,7 +176,11 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
         /* proto_tree_add_item(mswsp_hdr_tree, */
         /*                     hf_mswsp_hdr_reserved, tvb, 12, 4, ENC_LITTLE_ENDIAN); */
 
+        if (tvb_length(tvb) > 16) {
+            bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA);
 
+            mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_bdy);
+        }
     }
 
 /* If this protocol has a sub-dissector call it here, see section 1.8 */
