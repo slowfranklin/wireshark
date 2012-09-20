@@ -54,11 +54,12 @@ void proto_reg_handoff_mswsp(void);
 
 /* Initialize the protocol and registered fields */
 static int proto_mswsp = -1;
-static int hf_mswsp_bdy = -1;
+static int hf_mswsp_msg = -1;
 static int hf_mswsp_hdr = -1;
 static int hf_mswsp_hdr_msg = -1;
 static int hf_mswsp_hdr_status = -1;
-static int hf_mswsp_hdr_crc = -1;
+static int hf_mswsp_hdr_checksum = -1;
+static int hf_mswsp_hdr_reserved = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -68,7 +69,7 @@ static guint gPORT_PREF = 1234;
 /* Initialize the subtree pointers */
 static gint ett_mswsp = -1;
 static gint ett_mswsp_hdr = -1;
-static gint ett_mswsp_bdy = -1;
+static gint ett_mswsp_msg = -1;
 
 /* Code to actually dissect the packets */
 
@@ -202,6 +203,7 @@ static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, prot
 int
 dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 {
+    proto_tree *mswsp_tree = NULL;
     struct {
         guint32 msg;
         guint32 status;
@@ -294,36 +296,31 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
     col_append_str(pinfo->cinfo, COL_INFO, in ? "Request: " : "Response: ");
 
     if (tree) {
-        proto_item *ti=NULL, *hti=NULL, *bti=NULL;
-        proto_tree *mswsp_tree=NULL, *mswsp_hdr_tree=NULL, *mswsp_bdy_tree=NULL;
+        proto_tree *hdr_tree;
+        proto_item *ti, *hti;
 
         ti = proto_tree_add_item(tree, proto_mswsp, tvb, 0, -1, ENC_NA);
-
         mswsp_tree = proto_item_add_subtree(ti, ett_mswsp);
 
         hti = proto_tree_add_item(mswsp_tree, hf_mswsp_hdr, tvb, 0, 16, ENC_NA);
-        mswsp_hdr_tree = proto_item_add_subtree(hti, ett_mswsp_hdr);
+        hdr_tree = proto_item_add_subtree(hti, ett_mswsp_hdr);
 
-        proto_tree_add_item(mswsp_hdr_tree,
-                            hf_mswsp_hdr_msg, tvb, 0, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_msg, tvb,
+                            0, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_status,
+                            tvb, 4, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_checksum,
+                            tvb, 8, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_reserved, tvb,
+                            12, 4, ENC_LITTLE_ENDIAN);
+        /* if (tvb_length(tvb) > 16) { */
+        /*     bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA); */
 
-        proto_tree_add_item(mswsp_hdr_tree,
-                            hf_mswsp_hdr_status, tvb, 4, 4, ENC_LITTLE_ENDIAN);
-
-        proto_tree_add_item(mswsp_hdr_tree,
-                            hf_mswsp_hdr_crc, tvb, 8, 4, ENC_LITTLE_ENDIAN);
-
-        /* proto_tree_add_item(mswsp_hdr_tree, */
-        /*                     hf_mswsp_hdr_reserved, tvb, 12, 4, ENC_LITTLE_ENDIAN); */
-
-        if (tvb_length(tvb) > 16) {
-            bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA);
-
-            mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_bdy);
-        }
+        /*     mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_msg); */
+        /* } */
     }
 
-    fn(tvb, pinfo, tree, in);
+    fn(tvb, pinfo, mswsp_tree, in);
 
 /* Return the amount of data this dissector was able to dissect */
     return tvb_length(tvb);
@@ -372,25 +369,30 @@ proto_register_mswsp(void)
 			FT_NONE, BASE_NONE , NULL, 0,
 			"Message header", HFILL }
 		},
-		{ &hf_mswsp_bdy,
-			{ "Body",           "mswsp.body",
-			FT_NONE, BASE_NONE , NULL, 0,
-			"Message body", HFILL }
-		},
 		{ &hf_mswsp_hdr_msg,
-			{ "msg",           "mswsp.hdr.msg",
+			{ "msg", "mswsp.hdr.msg",
                           FT_UINT32, BASE_HEX , VALS(msg_ids), 0,
 			"Message id", HFILL }
 		},
 		{ &hf_mswsp_hdr_status,
-			{ "status",           "mswsp.hdr.status",
+			{ "status", "mswsp.hdr.status",
 			FT_UINT32, BASE_HEX , NULL, 0,
-			"Header status", HFILL }
+			"Status", HFILL }
 		},
-		{ &hf_mswsp_hdr_crc,
-			{ "crc",           "mswsp.hdr.crc",
+		{ &hf_mswsp_hdr_checksum,
+			{ "checksum", "mswsp.hdr.checksum",
 			FT_UINT32, BASE_HEX , NULL, 0,
-			"Header checksum", HFILL }
+			"Checksum", HFILL }
+		},
+		{ &hf_mswsp_hdr_reserved,
+			{ "crc", "mswsp.hdr.reserved",
+			FT_UINT32, BASE_HEX , NULL, 0,
+			"Reserved", HFILL }
+		},
+		{ &hf_mswsp_msg,
+			{ "msg", "mswsp.msg",
+			FT_NONE, BASE_NONE , NULL, 0,
+			"Message", HFILL }
 		},
 	};
 
@@ -398,7 +400,7 @@ proto_register_mswsp(void)
 	static gint *ett[] = {
             &ett_mswsp,
             &ett_mswsp_hdr,
-            &ett_mswsp_bdy,
+            &ett_mswsp_msg,
 	};
 
 /* Register the protocol name and description */
