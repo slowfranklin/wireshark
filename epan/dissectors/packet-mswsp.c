@@ -78,121 +78,121 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
     return tvb_length(tvb);
 }
 
-static int dissect_CPMDisconnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMDisconnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "Disconnect");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "CreateQuery");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMFreeCursor(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMFreeCursor(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "FreeCursor");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetRows(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetRows(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetRows");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMRatioFinished(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMRatioFinished(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "RatioFinished");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMCompareBmk(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMCompareBmk(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "CompareBmk");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetApproximatePosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetApproximatePosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetApproximatePosition");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "SetBindings");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetNotify");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMSendNotifyOut(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMSendNotifyOut(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "SendNotify");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetQueryStatus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetQueryStatus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatus");
-    tvb_length(tvb);
+    return tvb_length(tvb);
 }
 
-static int dissect_CPMCiState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMCiState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "CiState");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMFetchValue(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMFetchValue(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "FetchValue");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetQueryStatusEx(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetQueryStatusEx(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatusEx");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMRestartPosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMRestartPosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "RestartPosition");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMSetCatState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMSetCatState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "SetCatState");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetRowsetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetRowsetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetRowsetNotify");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMFindIndices(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMFindIndices(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "FindIndices");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMSetScopePrioritization(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMSetScopePrioritization(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "SetScopePrioritization");
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
 {
     col_append_str(pinfo->cinfo, COL_INFO, "GetScopeStatistics");
     return tvb_length(tvb);
@@ -467,11 +467,11 @@ static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 //si->tree->connect_frame
 
     fprintf(stderr, "dissect_mswsp %d <> %d : op %02x %s %s type: %d extra_file: %s\n",
-            pinfo->fd->num, si->tree ? si->tree->connect_frame : -1,
+            pinfo->fd->num, si->tree ? (int)si->tree->connect_frame : -1,
             si->opcode,
             pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
             in ? "Request" : "Response", si->tree ? si->tree->share_type : -1,
-            si->saved ? (si->saved->extra_info_type == SMB2_EI_FILENAME ? si->saved->extra_info : "<OTHER>") : "<NONE>"
+            si->saved ? (si->saved->extra_info_type == SMB2_EI_FILENAME ? (char*)si->saved->extra_info : "<OTHER>") : "<NONE>"
         );
 
 
