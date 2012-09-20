@@ -6812,6 +6812,7 @@ dissect_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolea
 	guint32			open_frame,close_frame;
 	smb2_eo_file_info_t	*eo_file_info;
 	e_ctx_hnd		*policy_hnd_hashtablekey;
+	void *private_data_bak;
 
 	sti = wmem_new(wmem_packet_scope(), smb2_transform_info_t);
 	si  = wmem_new(wmem_packet_scope(), smb2_info_t);
@@ -6820,6 +6821,9 @@ dissect_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolea
 	si->saved    = NULL;
 	si->tree     = NULL;
 	si->top_tree = parent_tree;
+
+	private_data_bak = pinfo->private_data;
+	pinfo->private_data = si;
 
 	if (tvb_get_guint8(tvb, 0) == 0xfd) {
 		smb2_transform_header = TRUE;
@@ -7103,6 +7107,7 @@ dissect_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolea
 		offset   = dissect_smb2(next_tvb, pinfo, parent_tree, FALSE);
 	}
 
+	pinfo->private_data = private_data_bak;
 	return offset;
 }
 
