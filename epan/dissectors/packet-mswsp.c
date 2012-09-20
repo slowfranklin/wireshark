@@ -124,16 +124,16 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         blob_size1 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        proto_tree_add_text(pad_tr, tvb, offset, 4, "_paddingcbBlob2");
-        offset += 4;
+        len = parse_padding(tvb, &offset, 8, pad_tr, "_paddingcbBlob2");
+        DISSECTOR_ASSERT(len == 4);
 
         /* _cbBlob2 */
         blob_size2_off = offset;
         blob_size2 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        proto_tree_add_text(pad_tr, tvb, offset, 12, "_padding");
-        offset += 12;
+        len = parse_padding(tvb, &offset, 16, pad_tr, "_padding");
+        DISSECTOR_ASSERT(len == 12);
 
         len = tvb_unicode_strsize(tvb, offset);
         ti = proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_MachineName, tvb,
@@ -175,7 +175,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
                             offset+4, blob_size2-4, "Property sets");
         offset += blob_size2;
 
-        proto_tree_add_text(pad_tr, tvb, offset, -1, "???");
+        parse_padding(tvb, &offset, 8, pad_tr, NULL);
+        DISSECTOR_ASSERT(offset == tvb_length(tvb));
 
         /* make "Padding" the last item */
         proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tr));
