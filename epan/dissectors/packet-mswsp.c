@@ -60,6 +60,12 @@ static int hf_mswsp_hdr_msg = -1;
 static int hf_mswsp_hdr_status = -1;
 static int hf_mswsp_hdr_checksum = -1;
 static int hf_mswsp_hdr_reserved = -1;
+static int hf_mswsp_msg_ConnectIn_ClientVersion = -1;
+static int hf_mswsp_msg_ConnectIn_ClientIsRemote = -1;
+static int hf_mswsp_msg_ConnectIn_Blob1 = -1;
+static int hf_mswsp_msg_ConnectIn_Blob2 = -1;
+static int hf_mswsp_msg_ConnectIn_MachineName = -1;
+static int hf_mswsp_msg_ConnectIn_UserName = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -73,9 +79,55 @@ static gint ett_mswsp_msg = -1;
 
 /* Code to actually dissect the packets */
 
-static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
+    proto_item *ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, 17, -1, ENC_NA);
+    proto_tree *tree = proto_item_add_subtree(ti, ett_mswsp_msg);
+    gint offset = 16;
+    guint len;
+    proto_item_set_text(ti, "CPMConnect%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "Connect");
+    if (in) {
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientVersion, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        offset += 4;
+
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientIsRemote, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        offset += 4;
+
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        offset += 4;
+
+        proto_tree_add_text(tree, tvb, offset, 4, "Padding");
+        offset += 4;
+
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob2, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        offset += 4;
+
+        proto_tree_add_text(tree, tvb, offset, 12, "Padding");
+        offset += 12;
+
+        len = tvb_unicode_strsize(tvb, offset);
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_MachineName, tvb,
+                            offset, len, ENC_UTF_16);
+        offset += len;
+
+        len = tvb_unicode_strsize(tvb, offset);
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_UserName, tvb,
+                            offset, len, ENC_UTF_16);
+        offset += len;
+
+        if (offset % 8) {
+            int pad = 8 - (offset % 8);
+            proto_tree_add_text(tree, tvb, offset, pad, "Padding");
+            offset += pad;
+        }
+        DISSECTOR_ASSERT((offset % 8) == 0);
+        proto_tree_add_text(tree, tvb, offset, -1, "Rest: propsets etc.");
+    }
     return tvb_length(tvb);
 }
 
@@ -393,6 +445,36 @@ proto_register_mswsp(void)
 			{ "msg", "mswsp.msg",
 			FT_NONE, BASE_NONE , NULL, 0,
 			"Message", HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_ClientVersion,
+                  { "version", "mswsp.ConnectIn.version",
+                    FT_UINT32, BASE_HEX , NULL, 0,
+                    "Checksum",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_ClientIsRemote,
+                  { "is_remote", "mswsp.ConnectIn.isRemote",
+                    FT_BOOLEAN, BASE_HEX , NULL, 0,
+                    "Client is remote",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_Blob1,
+                  { "blob1", "mswsp.ConnectIn.blob1",
+                    FT_UINT32, BASE_HEX , NULL, 0,
+                    "Size of PropSet fields",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_Blob2,
+                  { "blob1", "mswsp.ConnectIn.blob2",
+                    FT_UINT32, BASE_HEX , NULL, 0,
+                    "Size of ExtPropSet fields",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_MachineName,
+                  { "machine", "mswsp.ConnectIn.machine",
+                    FT_STRINGZ, BASE_NONE , NULL, 0,
+                    "Name of remote machine",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_UserName,
+                  { "user", "mswsp.ConnectIn.user",
+                    FT_STRINGZ, BASE_NONE , NULL, 0,
+                    "Name of remote user",HFILL }
 		},
 	};
 
