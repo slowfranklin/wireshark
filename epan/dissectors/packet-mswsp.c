@@ -37,11 +37,16 @@
 #include <epan/packet.h>
 #include <epan/prefs.h>
 
+#include "packet-smb.h"
+#include "packet-smb2.h"
+
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
 /*
  * #include "packet-mswsp.h"
  */
+
+
 
 /* Forward declaration we need below (if using proto_reg_handoff...
    as a prefs callback)       */
@@ -66,93 +71,228 @@ static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_bdy = -1;
 
 /* Code to actually dissect the packets */
-static int
-dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+
+static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 {
+    col_append_str(pinfo->cinfo, COL_INFO, "Connect");
+    return tvb_length(tvb);
+}
 
-/* Set up structures needed to add the protocol subtree and manage it */
-    fprintf(stderr, "dissect_mswsp: %s dceidx: %d\n",
-            pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
-            (int)pinfo->dcectxid);
+static int dissect_CPMDisconnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "Disconnect");
+    return tvb_length(tvb);
+}
 
-/*  First, if at all possible, do some heuristics to check if the packet cannot
- *  possibly belong to your protocol.  This is especially important for
- *  protocols directly on top of TCP or UDP where port collisions are
- *  common place (e.g., even though your protocol uses a well known port,
- *  someone else may set up, for example, a web server on that port which,
- *  if someone analyzed that web server's traffic in Wireshark, would result
- *  in Wireshark handing an HTTP packet to your dissector).  For example:
- */
+static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "CreateQuery");
+    return tvb_length(tvb);
+}
 
-    if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+static int dissect_CPMFreeCursor(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "FreeCursor");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetRows(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetRows");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMRatioFinished(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "RatioFinished");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMCompareBmk(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "CompareBmk");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetApproximatePosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetApproximatePosition");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "SetBindings");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetNotify");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMSendNotifyOut(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "SendNotify");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetQueryStatus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatus");
+    tvb_length(tvb);
+}
+
+static int dissect_CPMCiState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "CiState");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMFetchValue(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "FetchValue");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetQueryStatusEx(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatusEx");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMRestartPosition(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "RestartPosition");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMSetCatState(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "SetCatState");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetRowsetNotify(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetRowsetNotify");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMFindIndices(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "FindIndices");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMSetScopePrioritization(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "SetScopePrioritization");
+    return tvb_length(tvb);
+}
+
+static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    col_append_str(pinfo->cinfo, COL_INFO, "GetScopeStatistics");
+    return tvb_length(tvb);
+}
+
+
+int
+dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
+    struct {
+        guint32 msg;
+        guint32 status;
+        guint32 checksum;
+        guint32 reserved;
+    } hdr;
+    int (*fn)(tvbuff_t*, packet_info*, proto_tree*, gboolean);
+
+    if (tvb_length(tvb) < 16) {
         return 0;
     }
 
-/* Make entries in Protocol column and Info column on summary display */
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "mswsp");
+    hdr.msg = tvb_get_letoh24(tvb, 0);
 
-/* This field shows up as the "Info" column in the display; you should use
-   it, if possible, to summarize what's in the packet, so that a user looking
-   at the list of packets can tell what type of packet it is. See section 1.5
-   for more information.
+    switch(hdr.msg) {
+    case 0xC8:
+        fn = dissect_CPMConnect;
+        break;
+    case 0xC9:
+        fn = dissect_CPMDisconnect;
+        break;
+    case 0xCA:
+        fn = dissect_CPMCreateQuery;
+        break;
+    case 0xCB:
+        fn = dissect_CPMFreeCursor;
+        break;
+    case 0xCC:
+        fn = dissect_CPMGetRows;
+        break;
+    case 0xCD:
+        fn = dissect_CPMRatioFinished;
+        break;
+    case 0xCE:
+        fn = dissect_CPMCompareBmk;
+        break;
+    case 0xCF:
+        fn = dissect_CPMGetApproximatePosition;
+        break;
+    case 0xD0:
+        fn = dissect_CPMSetBindings;
+        break;
+    case 0xD1:
+        fn = dissect_CPMGetNotify;
+        break;
+    case 0xD2:
+        fn = dissect_CPMSendNotifyOut;
+        break;
+    case  0xD7:
+        fn = dissect_CPMGetQueryStatus;
+        break;
+    case  0xD9:
+        fn = dissect_CPMCiState;
+        break;
+    case  0xE4:
+        fn = dissect_CPMFetchValue;
+        break;
+    case  0xE7:
+        fn = dissect_CPMGetQueryStatusEx;
+        break;
+    case  0xE8:
+        fn = dissect_CPMRestartPosition;
+        break;
+    case  0xEC:
+        fn = dissect_CPMSetCatState;
+        break;
+    case  0xF1:
+        fn = dissect_CPMGetRowsetNotify;
+        break;
+    case  0xF2:
+        fn = dissect_CPMFindIndices;
+        break;
+    case  0xF3:
+        fn = dissect_CPMSetScopePrioritization;
+        break;
+    case  0xF4:
+        fn = dissect_CPMGetScopeStatistics;
+        break;
+    default:
+        return 0;
+    }
 
-   If you are setting the column to a constant string, use "col_set_str()",
-   as it's more efficient than the other "col_set_XXX()" calls.
+    hdr.status = tvb_get_letoh24(tvb, 4);
+    hdr.checksum = tvb_get_letoh24(tvb, 8);
 
-   If you're setting it to a string you've constructed, or will be
-   appending to the column later, use "col_add_str()".
+    col_set_str(pinfo->cinfo, COL_PROTOCOL, "MS-WSP");
+/*    col_clear(pinfo->cinfo, COL_INFO); */
 
-   "col_add_fstr()" can be used instead of "col_add_str()"; it takes
-   "printf()"-like arguments.  Don't use "col_add_fstr()" with a format
-   string of "%s" - just use "col_add_str()" or "col_set_str()", as it's
-   more efficient than "col_add_fstr()".
+    col_set_str(pinfo->cinfo, COL_INFO, "WSP ");
+    col_append_str(pinfo->cinfo, COL_INFO, in ? "Request: " : "Response: ");
 
-   If you will be fetching any data from the packet before filling in
-   the Info column, clear that column first, in case the calls to fetch
-   data from the packet throw an exception because they're fetching data
-   past the end of the packet, so that the Info column doesn't have data
-   left over from the previous dissector; do
-
-	col_clear(pinfo->cinfo, COL_INFO);
-
-   */
-
-    col_add_str(pinfo->cinfo, COL_INFO, "WSP");
-
-/* A protocol dissector may be called in 2 different ways - with, or
-   without a non-null "tree" argument.
-
-   If the proto_tree argument is null, Wireshark does not need to use
-   the protocol tree information from your dissector, and therefore is
-   passing the dissector a null "tree" argument so that it doesn't
-   need to do work necessary to build the protocol tree.
-
-   In the interest of speed, if "tree" is NULL, avoid building a
-   protocol tree and adding stuff to it, or even looking at any packet
-   data needed only if you're building the protocol tree, if possible.
-
-   Note, however, that you must fill in column information, create
-   conversations, reassemble packets, do calls to "expert" functions,
-   build any other persistent state needed for dissection, and call
-   subdissectors regardless of whether "tree" is NULL or not.
-
-   This might be inconvenient to do without doing most of the
-   dissection work; the routines for adding items to the protocol tree
-   can be passed a null protocol tree pointer, in which case they'll
-   return a null item pointer, and "proto_item_add_subtree()" returns
-   a null tree pointer if passed a null item pointer, so, if you're
-   careful not to dereference any null tree or item pointers, you can
-   accomplish this by doing all the dissection work.  This might not
-   be as efficient as skipping that work if you're not building a
-   protocol tree, but if the code would have a lot of tests whether
-   "tree" is null if you skipped that work, you might still be better
-   off just doing all that work regardless of whether "tree" is null
-   or not.
-
-   Note also that there is no guarantee, the first time the dissector is
-   called, whether "tree" will be null or not; your dissector must work
-   correctly, building or updating whatever state information is
-   necessary, in either case. */
     if (tree) {
         proto_item *ti=NULL, *hti=NULL, *bti=NULL;
         proto_tree *mswsp_tree=NULL, *mswsp_hdr_tree=NULL, *mswsp_bdy_tree=NULL;
@@ -183,10 +323,10 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
         }
     }
 
-/* If this protocol has a sub-dissector call it here, see section 1.8 */
+    fn(tvb, pinfo, tree, in);
 
 /* Return the amount of data this dissector was able to dissect */
-	return tvb_length(tvb);
+    return tvb_length(tvb);
 }
 
 
@@ -300,6 +440,49 @@ proto_register_mswsp(void)
 	     10, &gPORT_PREF);
 }
 
+static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
+    smb_info_t *si = pinfo->private_data;
+    gboolean in = si->request;
+
+    fprintf(stderr, "dissect_mswsp_smb %d <> %d : op %02x %s %s type: %d\n",
+            pinfo->fd->num, si->tid,
+            si->cmd,
+            pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
+            in ? "Request" : "Response", si->tid);
+
+
+    if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+        return 0;
+    }
+
+    return dissect_mswsp(tvb, pinfo, tree, in);
+}
+
+
+static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
+    smb2_info_t *si = pinfo->private_data;
+    gboolean in = !(si->flags & SMB2_FLAGS_RESPONSE);
+
+//si->tree->share_type == SMB2_SHARE_TYPE_PIPE
+//si->tree->connect_frame
+
+    fprintf(stderr, "dissect_mswsp %d <> %d : op %02x %s %s type: %d extra_file: %s\n",
+            pinfo->fd->num, si->tree ? si->tree->connect_frame : -1,
+            si->opcode,
+            pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
+            in ? "Request" : "Response", si->tree ? si->tree->share_type : -1,
+            si->saved ? (si->saved->extra_info_type == SMB2_EI_FILENAME ? si->saved->extra_info : "<OTHER>") : "<NONE>"
+        );
+
+
+    if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+        return 0;
+    }
+
+    return dissect_mswsp(tvb, pinfo, tree, in);
+}
+
+
 
 /* If this dissector uses sub-dissector registration add a registration routine.
    This exact format is required because a script is used to find these
@@ -316,8 +499,8 @@ proto_register_mswsp(void)
 void
 proto_reg_handoff_mswsp(void)
 {
-    heur_dissector_add("smb_transact", dissect_mswsp, proto_mswsp);
-    heur_dissector_add("smb2_heur_subdissectors", dissect_mswsp, proto_mswsp);
+    heur_dissector_add("smb_transact", dissect_mswsp_smb, proto_mswsp);
+    heur_dissector_add("smb2_heur_subdissectors", dissect_mswsp_smb2, proto_mswsp);
 }
 
 
