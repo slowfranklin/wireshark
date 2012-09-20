@@ -66,6 +66,8 @@ static int hf_mswsp_msg_ConnectIn_Blob1 = -1;
 static int hf_mswsp_msg_ConnectIn_Blob2 = -1;
 static int hf_mswsp_msg_ConnectIn_MachineName = -1;
 static int hf_mswsp_msg_ConnectIn_UserName = -1;
+static int hf_mswsp_msg_ConnectIn_PropSets_num = -1;
+static int hf_mswsp_msg_ConnectIn_ExtPropSets_num = -1;
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -76,6 +78,11 @@ static guint gPORT_PREF = 1234;
 static gint ett_mswsp = -1;
 static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_msg = -1;
+static gint ett_mswsp_pad = -1;
+static gint ett_mswsp_connect_propsets = -1;
+static gint ett_mswsp_connect_extprops = -1;
+
+
 
 /* Code to actually dissect the packets */
 
@@ -88,6 +95,13 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
     proto_item_set_text(ti, "CPMConnect%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "Connect");
     if (in) {
+        guint32 blob_size1, blob_size2;
+        guint32 blob_size1_off, blob_size2_off;
+        proto_tree *pad_tr, *pset_tr, *eset_tr;
+
+        ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
+        pad_tr = proto_item_add_subtree(ti, ett_mswsp_pad);
+
         proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientVersion, tvb,
                             offset, 4, ENC_LITTLE_ENDIAN);
         offset += 4;
@@ -96,18 +110,20 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
                             offset, 4, ENC_LITTLE_ENDIAN);
         offset += 4;
 
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
+        /* _cbBlob1 */
+        blob_size1_off = offset;
+        blob_size1 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        proto_tree_add_text(tree, tvb, offset, 4, "Padding");
+        proto_tree_add_text(pad_tr, tvb, offset, 4, "_paddingcbBlob2");
         offset += 4;
 
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob2, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
+        /* _cbBlob2 */
+        blob_size2_off = offset;
+        blob_size2 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        proto_tree_add_text(tree, tvb, offset, 12, "Padding");
+        proto_tree_add_text(pad_tr, tvb, offset, 12, "_padding");
         offset += 12;
 
         len = tvb_unicode_strsize(tvb, offset);
@@ -126,11 +142,41 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
         if (offset % 8) {
             int pad = 8 - (offset % 8);
-            proto_tree_add_text(tree, tvb, offset, pad, "Padding");
+            proto_tree_add_text(pad_tr, tvb, offset, pad, "_paddingcPropSets");
             offset += pad;
         }
         DISSECTOR_ASSERT((offset % 8) == 0);
-        proto_tree_add_text(tree, tvb, offset, -1, "Rest: propsets etc.");
+
+        ti = proto_tree_add_text(tree, tvb, offset, blob_size1, "PropSets");
+        pset_tr = proto_item_add_subtree(ti, ett_mswsp_connect_propsets);
+        proto_tree_add_item(pset_tr, hf_mswsp_msg_ConnectIn_Blob1, tvb,
+                            blob_size1_off, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(pset_tr, hf_mswsp_msg_ConnectIn_PropSets_num, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_text(pset_tr, tvb,
+                            offset+4, blob_size1-4, "PropertySet1 & 2");
+        offset += blob_size1;
+
+        if (offset % 8) {
+            int pad = 8 - (offset % 8);
+            proto_tree_add_text(pad_tr, tvb, offset, pad, "paddingExtPropset");
+            offset += pad;
+        }
+
+        ti = proto_tree_add_text(tree, tvb, offset, blob_size2, "ExtPropset");
+        eset_tr = proto_item_add_subtree(ti, ett_mswsp_connect_extprops);
+        proto_tree_add_item(eset_tr, hf_mswsp_msg_ConnectIn_Blob2, tvb,
+                            blob_size2_off, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_item(eset_tr, hf_mswsp_msg_ConnectIn_ExtPropSets_num, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        proto_tree_add_text(eset_tr, tvb,
+                            offset+4, blob_size2-4, "Property sets");
+        offset += blob_size2;
+
+        proto_tree_add_text(pad_tr, tvb, offset, -1, "???");
+
+        /* make "Padding" the last item */
+        proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tr));
     }
     return tvb_length(tvb);
 }
@@ -369,11 +415,6 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
                             tvb, 8, 4, ENC_LITTLE_ENDIAN);
         proto_tree_add_item(hdr_tree, hf_mswsp_hdr_reserved, tvb,
                             12, 4, ENC_LITTLE_ENDIAN);
-        /* if (tvb_length(tvb) > 16) { */
-        /*     bti = proto_tree_add_item(mswsp_tree, hf_mswsp_bdy, tvb, 17, -1, ENC_NA); */
-
-        /*     mswsp_bdy_tree = proto_item_add_subtree(bti, ett_mswsp_msg); */
-        /* } */
     }
 
     fn(tvb, pinfo, mswsp_tree, in);
@@ -461,13 +502,13 @@ proto_register_mswsp(void)
                     "Client is remote",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_Blob1,
-                  { "Blob1 size", "mswsp.ConnectIn.blob1",
-                    FT_UINT32, BASE_HEX , NULL, 0,
+                  { "Size", "mswsp.ConnectIn.propset.size",
+                    FT_UINT32, BASE_DEC , NULL, 0,
                     "Size of PropSet fields",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_Blob2,
-                  { "Blob2 size", "mswsp.ConnectIn.blob2",
-                    FT_UINT32, BASE_HEX , NULL, 0,
+                  { "Size", "mswsp.ConnectIn.extpropset.size",
+                    FT_UINT32, BASE_DEC , NULL, 0,
                     "Size of ExtPropSet fields",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_MachineName,
@@ -480,6 +521,17 @@ proto_register_mswsp(void)
                     FT_STRINGZ, BASE_NONE , NULL, 0,
                     "Name of remote user",HFILL }
 		},
+		{ &hf_mswsp_msg_ConnectIn_PropSets_num,
+                  { "Num", "mswsp.ConnectIn.propset.num",
+                    FT_UINT32, BASE_DEC , NULL, 0,
+                    "Number of Property Sets", HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectIn_ExtPropSets_num,
+                  { "Num", "mswsp.ConnectIn.extpropset.num",
+                    FT_UINT32, BASE_DEC , NULL, 0,
+                    "Number of extended Property Sets", HFILL }
+		},
+
 	};
 
 /* Setup protocol subtree array */
@@ -487,6 +539,9 @@ proto_register_mswsp(void)
             &ett_mswsp,
             &ett_mswsp_hdr,
             &ett_mswsp_msg,
+            &ett_mswsp_pad,
+            &ett_mswsp_connect_propsets,
+            &ett_mswsp_connect_extprops,
 	};
 
 /* Register the protocol name and description */
