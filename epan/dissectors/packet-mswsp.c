@@ -111,13 +111,17 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         offset += 12;
 
         len = tvb_unicode_strsize(tvb, offset);
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_MachineName, tvb,
-                            offset, len, ENC_UTF_16);
+        ti = proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_MachineName, tvb,
+                                 offset, len, ENC_UTF_16);
+        /*This shouldnt be necessary, is this a bug or is there some GUI setting I've missed?*/
+        proto_item_set_text(ti, "Remote machine: %s",
+                            tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
         len = tvb_unicode_strsize(tvb, offset);
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_UserName, tvb,
-                            offset, len, ENC_UTF_16);
+        ti = proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_UserName, tvb,
+                                 offset, len, ENC_UTF_16);
+        proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
         if (offset % 8) {
@@ -422,12 +426,12 @@ proto_register_mswsp(void)
 			"Message header", HFILL }
 		},
 		{ &hf_mswsp_hdr_msg,
-			{ "msg", "mswsp.hdr.msg",
+			{ "Msg id", "mswsp.hdr.id",
                           FT_UINT32, BASE_HEX , VALS(msg_ids), 0,
 			"Message id", HFILL }
 		},
 		{ &hf_mswsp_hdr_status,
-			{ "status", "mswsp.hdr.status",
+			{ "Status", "mswsp.hdr.status",
 			FT_UINT32, BASE_HEX , NULL, 0,
 			"Status", HFILL }
 		},
@@ -437,7 +441,7 @@ proto_register_mswsp(void)
 			"Checksum", HFILL }
 		},
 		{ &hf_mswsp_hdr_reserved,
-			{ "crc", "mswsp.hdr.reserved",
+			{ "Reserved", "mswsp.hdr.reserved",
 			FT_UINT32, BASE_HEX , NULL, 0,
 			"Reserved", HFILL }
 		},
@@ -447,32 +451,32 @@ proto_register_mswsp(void)
 			"Message", HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_ClientVersion,
-                  { "version", "mswsp.ConnectIn.version",
+                  { "Version", "mswsp.ConnectIn.version",
                     FT_UINT32, BASE_HEX , NULL, 0,
                     "Checksum",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_ClientIsRemote,
-                  { "is_remote", "mswsp.ConnectIn.isRemote",
+                  { "Remote", "mswsp.ConnectIn.isRemote",
                     FT_BOOLEAN, BASE_HEX , NULL, 0,
                     "Client is remote",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_Blob1,
-                  { "blob1", "mswsp.ConnectIn.blob1",
+                  { "Blob1 size", "mswsp.ConnectIn.blob1",
                     FT_UINT32, BASE_HEX , NULL, 0,
                     "Size of PropSet fields",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_Blob2,
-                  { "blob1", "mswsp.ConnectIn.blob2",
+                  { "Blob2 size", "mswsp.ConnectIn.blob2",
                     FT_UINT32, BASE_HEX , NULL, 0,
                     "Size of ExtPropSet fields",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_MachineName,
-                  { "machine", "mswsp.ConnectIn.machine",
+                  { "Remote machine", "mswsp.ConnectIn.machine",
                     FT_STRINGZ, BASE_NONE , NULL, 0,
                     "Name of remote machine",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_UserName,
-                  { "user", "mswsp.ConnectIn.user",
+                  { "User", "mswsp.ConnectIn.user",
                     FT_STRINGZ, BASE_NONE , NULL, 0,
                     "Name of remote user",HFILL }
 		},
