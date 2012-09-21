@@ -92,9 +92,49 @@ static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *p
     return padding;
 }
 
+static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+{
+    (void)tvb; (void)offset; (void)tree; (void)pad_tree;
+    //Todo
+    return 0;
+}
+
+static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+{
+    (void)tvb; (void)offset; (void)tree; (void)pad_tree;
+    //Todo
+    return 0;
+}
+
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
+    const int offset_in = offset;
+    int len;
+    proto_item *ti;
+    proto_tree *tr;
 
+    proto_tree_add_text(tree, tvb, offset, 4, "Id (DBPROPID)");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "Options (DBPROPOPTIONS)");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "Status (DBPROPSTATUS)");
+    offset += 4;
+
+    ti = proto_tree_add_text(tree, tvb, offset, 0, "colid");
+    tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
+    len = parse_CDbColId(tvb, offset, tree, pad_tree);
+    proto_item_set_len(ti, len);
+    offset += len;
+
+    ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
+    tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
+    len = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree);
+    proto_item_set_len(ti, len);
+    offset += len;
+
+    return offset - offset_in;
 }
 
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
