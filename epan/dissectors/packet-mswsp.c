@@ -82,12 +82,11 @@ static gint ett_mswsp_pad = -1;
 static gint ett_mswsp_connect_propsets = -1;
 static gint ett_mswsp_connect_extprops = -1;
 
-static int parse_padding(tvbuff_t *tvb, int *offset, int alignment, proto_tree *pad_tree, const char *text)
+static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *text)
 {
-    const int padding = alignment - (*offset % alignment);
+    const int padding = alignment - (offset % alignment);
     if (padding) {
-        proto_tree_add_text(pad_tree, tvb, *offset, padding, "%s (%d)", text ? text : "???", padding);
-        *offset += padding;
+        proto_tree_add_text(pad_tree, tvb, offset, padding, "%s (%d)", text ? text : "???", padding);
     }
     return padding;
 }
@@ -124,7 +123,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         blob_size1 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        len = parse_padding(tvb, &offset, 8, pad_tr, "_paddingcbBlob2");
+        len = parse_padding(tvb, offset, 8, pad_tr, "_paddingcbBlob2");
+        offset += len;
         DISSECTOR_ASSERT(len == 4);
 
         /* _cbBlob2 */
@@ -132,7 +132,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         blob_size2 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        len = parse_padding(tvb, &offset, 16, pad_tr, "_padding");
+        len = parse_padding(tvb, offset, 16, pad_tr, "_padding");
+        offset += len;
         DISSECTOR_ASSERT(len == 12);
 
         len = tvb_unicode_strsize(tvb, offset);
@@ -149,7 +150,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
-        parse_padding(tvb, &offset, 8, pad_tr, "_paddingcPropSets");
+        len = parse_padding(tvb, offset, 8, pad_tr, "_paddingcPropSets");
+        offset += len;
         DISSECTOR_ASSERT((offset % 8) == 0);
 
         ti = proto_tree_add_text(tree, tvb, offset, blob_size1, "PropSets");
@@ -162,7 +164,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
                             offset+4, blob_size1-4, "PropertySet1 & 2");
         offset += blob_size1;
 
-        parse_padding(tvb, &offset, 8, pad_tr, "paddingExtPropset");
+        len = parse_padding(tvb, offset, 8, pad_tr, "paddingExtPropset");
+        offset += len;
         DISSECTOR_ASSERT((offset % 8) == 0);
 
         ti = proto_tree_add_text(tree, tvb, offset, blob_size2, "ExtPropset");
@@ -175,7 +178,8 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
                             offset+4, blob_size2-4, "Property sets");
         offset += blob_size2;
 
-        parse_padding(tvb, &offset, 8, pad_tr, NULL);
+        len = parse_padding(tvb, offset, 8, pad_tr, NULL);
+        offset += len;
         DISSECTOR_ASSERT(offset == tvb_length(tvb));
 
         /* make "Padding" the last item */
