@@ -99,11 +99,41 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
     return 0;
 }
 
+enum {
+    DBKIND_GUID_NAME = 0,
+    DBKIND_GUID_PROPID = 1
+};
+
 static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    (void)tvb; (void)offset; (void)tree; (void)pad_tree;
-    //Todo
-    return 0;
+    const int offset_in = offset;
+    int len;
+    guint32 eKind, ulId;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "eKind");
+    eKind = tvb_get_letoh24(tvb, offset);
+    offset += 4;
+
+    len = parse_padding(tvb, offset, 16, pad_tree, "paddingGuidAlign");
+    DISSECTOR_ASSERT(len <= 8);
+    offset += len;
+
+    proto_tree_add_text(tree, tvb, offset, 16, "GUID");
+    offset += 16;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "ulId");
+    ulId = tvb_get_letoh24(tvb, offset);
+    offset += 4;
+
+    if (eKind == DBKIND_GUID_NAME) {
+        char *name;
+        len = ulId; //*2 ???
+        name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
+        proto_tree_add_text(tree, tvb, offset, len, "vString: \"%s\"", name);
+        offset += len;
+    }
+
+    return offset - offset_in;
 }
 
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
