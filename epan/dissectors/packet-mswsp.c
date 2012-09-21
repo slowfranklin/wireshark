@@ -81,6 +81,7 @@ static gint ett_mswsp_msg = -1;
 static gint ett_mswsp_pad = -1;
 static gint ett_mswsp_connect_propsets = -1;
 static gint ett_mswsp_connect_extprops = -1;
+static gint ett_mswsp_prop = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *text)
 {
@@ -91,6 +92,43 @@ static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *p
     return padding;
 }
 
+static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+{
+
+}
+
+static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+{
+    const int offset_in = offset;
+    int len, i, num;
+
+    proto_tree_add_text(tree, tvb, offset, 16, "guidPropertySet");
+    offset += 16;
+
+    len = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
+    offset += len;
+
+    num = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cProperties");
+    offset += 4;
+
+    for (i = 0; i<num; i++) {
+        proto_item *ti;
+        proto_tree *tr;
+
+        len = parse_padding(tvb, offset, 4, pad_tree, "aProp");
+        offset += len;
+
+        ti = proto_tree_add_text(tree, tvb, offset, 0, "aProp[%d]", i);
+        tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
+
+        len = parse_CDbProp(tvb, offset, tr, pad_tree);
+        proto_item_set_len(ti, len);
+        offset += len;
+    }
+
+    return offset - offset_in;
+}
 
 /* Code to actually dissect the packets */
 
@@ -549,6 +587,7 @@ proto_register_mswsp(void)
             &ett_mswsp_pad,
             &ett_mswsp_connect_propsets,
             &ett_mswsp_connect_extprops,
+            &ett_mswsp_prop,
 	};
 
 /* Register the protocol name and description */
