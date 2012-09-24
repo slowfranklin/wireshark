@@ -46,7 +46,7 @@
  * #include "packet-mswsp.h"
  */
 
-
+#define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
 
 /* Forward declaration we need below (if using proto_reg_handoff...
    as a prefs callback)       */
@@ -79,24 +79,148 @@ static gint ett_mswsp = -1;
 static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_msg = -1;
 static gint ett_mswsp_pad = -1;
-static gint ett_mswsp_connect_propsets = -1;
-static gint ett_mswsp_connect_extprops = -1;
-static gint ett_mswsp_prop = -1;
+static gint ett_mswsp_propset_array[2];
+static gint ett_mswsp_propset[8];
+static gint ett_mswsp_prop[64];
+static gint ett_mswsp_prop_colid[64];
+static gint ett_mswsp_prop_value[64];
+
+struct {
+    guint propset_array;
+    guint propset;
+    guint prop;
+    guint prop_colid;
+    guint prop_value;
+} ett_idx;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *text)
 {
-    const int padding = alignment - (offset % alignment);
-    if (padding) {
+    int padding = 0;
+    if (offset % alignment) {
+        padding = alignment - (offset % alignment);
         proto_tree_add_text(pad_tree, tvb, offset, padding, "%s (%d)", text ? text : "???", padding);
     }
     return padding;
 }
 
+enum vType {
+    VT_EMPTY       = 0x00,
+    VT_NULL        = 0x01,
+    VT_I2          = 0x02,
+    VT_I4          = 0x03,
+    VT_R4          = 0x04,
+    VT_R8          = 0x05,
+    VT_CY          = 0x06,
+    VT_DATE        = 0x07,
+    VT_BSTR        = 0x08,
+    VT_ERROR       = 0x0a,
+    VT_BOOL        = 0x0b,
+    VT_VARIANT     = 0x0c,
+    VT_DECIMAL     = 0x0e,
+    VT_I1          = 0x10,
+    VT_UI1         = 0x11,
+    VT_UI2         = 0x12,
+    VT_UI4         = 0x13,
+    VT_I8          = 0x14,
+    VT_UI8         = 0x15,
+    VT_INT         = 0x16,
+    VT_UINT        = 0x17,
+    VT_LPSTR       = 0x1e,
+    VT_LPWSTR      = 0x1f,
+    VT_COMPRESSED_LPWSTR = 0x23,
+    VT_FILETIME    = 0x40,
+    VT_BLOB        = 0x41,
+    VT_BLOB_OBJECT = 0x46,
+    VT_CLSID       = 0x48,
+    VT_VECTOR      = 0x1000,
+    VT_ARRAY       = 0x2000,
+};
+
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    (void)tvb; (void)offset; (void)tree; (void)pad_tree;
-    //Todo
-    return 0;
+    const int offset_in = offset;
+    int len;
+    enum vType vType;
+    guint8 vData1, vData2;
+    gboolean is_vt_vector, is_vt_array;
+    proto_item *ti;
+
+    vType = tvb_get_letohs(tvb, offset);
+    ti = proto_tree_add_text(tree, tvb, offset, 2, "vType: (0x%04x)", (unsigned)vType);
+    offset += 2;
+    is_vt_vector = vType & VT_VECTOR;
+    is_vt_array  =  vType & VT_ARRAY;
+
+    proto_tree_add_text(tree, tvb, offset, 1, "vData1");
+    vData1 = tvb_get_guint8(tvb, offset);
+    offset += 1;
+
+    proto_tree_add_text(tree, tvb, offset, 1, "vData2");
+    vData1 = tvb_get_guint8(tvb, offset);
+    offset += 1;
+
+    switch (vType & 0xff) {
+    case VT_EMPTY:
+    case VT_NULL:
+        len = 0;
+        break;
+    case VT_I1:
+    case VT_UI1:
+        len = 1;
+        break;
+    case VT_I2:
+    case VT_UI2:
+    case VT_BOOL:
+        len = 2;
+        break;
+    case VT_I4:
+    case VT_UI4:
+    case VT_R4:
+    case VT_INT:
+    case VT_UINT:
+    case VT_ERROR:
+        len = 4;
+        break;
+    case VT_I8:
+    case VT_UI8:
+    case VT_R8:
+    case VT_CY:
+    case VT_DATE:
+    case VT_FILETIME:
+        len = 8;
+        break;
+    case VT_LPWSTR:
+        len = 4 + tvb_unicode_strsize(tvb, offset+4);
+        break;
+    case VT_LPSTR:
+        len = 4 + tvb_strsize(tvb, offset+4);
+        break;
+    case VT_BSTR:
+    case VT_BLOB:
+    case VT_BLOB_OBJECT:
+        len = 4 + tvb_get_letoh24(tvb, offset);
+        break;
+    default:
+        proto_item_append_text(ti, ": sorry, vType %02x not handled yet!", (unsigned)vType);
+        goto done;
+    }
+
+    if (is_vt_array) {
+        proto_item_append_text(ti, ": sorry, Array of vType %04x not handled yet!", (unsigned)vType);
+        goto done;
+    }
+
+    if (is_vt_vector ) {
+        //XXX lpstr etc. not supported;
+        guint32 num = tvb_get_letoh24(tvb, offset);
+        len = MAX(len, 4) * num + 4;
+    }
+
+    proto_tree_add_text(tree, tvb, offset, len, "vValue");
+    offset += len;
+
+done:
+    return offset - offset_in;
 }
 
 enum {
@@ -109,20 +233,28 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
     const int offset_in = offset;
     int len;
     guint32 eKind, ulId;
+    e_guid_t guid;
+    const char *guid_str;
+    static const char *KIND[] = {"DBKIND_GUID_NAME", "DBKIND_GUID_PROPID"};
+    proto_item *tree_item = proto_tree_get_parent(tree);
 
-    proto_tree_add_text(tree, tvb, offset, 4, "eKind");
     eKind = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "eKind: %s (%u)", eKind < 2 ? KIND[eKind] : "???", eKind);
     offset += 4;
 
-    len = parse_padding(tvb, offset, 16, pad_tree, "paddingGuidAlign");
+    len = parse_padding(tvb, offset, 8, pad_tree, "paddingGuidAlign");
     DISSECTOR_ASSERT(len <= 8);
     offset += len;
 
-    proto_tree_add_text(tree, tvb, offset, 16, "GUID");
+    tvb_get_letohguid(tvb, offset, &guid);
+    guid_str =  guid_to_str(&guid);
+    proto_tree_add_text(tree, tvb, offset, 16, "GUID: %s", guid_str);
+//    proto_tree_add_guid(tree, , tvb, offset, 16, &guid);
+    proto_item_append_text(tree_item, ": {%s}", guid_str);
     offset += 16;
 
-    proto_tree_add_text(tree, tvb, offset, 4, "ulId");
     ulId = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "ulId: %d", ulId);
     offset += 4;
 
     if (eKind == DBKIND_GUID_NAME) {
@@ -130,7 +262,12 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
         len = ulId; //*2 ???
         name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "vString: \"%s\"", name);
+        proto_item_append_text(tree_item, "\"%s\"", name);
         offset += len;
+    } else if (eKind == DBKIND_GUID_PROPID) {
+        proto_item_append_text(tree_item, " %08x", ulId);
+    } else {
+        proto_item_append_string(tree_item, "<INVALID>");
     }
 
     return offset - offset_in;
@@ -140,47 +277,84 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
 {
     const int offset_in = offset;
     int len;
-    proto_item *ti;
+    guint32 id, opt, status;
+    proto_item *ti, *tree_item = proto_tree_get_parent(tree);
     proto_tree *tr;
 
-    proto_tree_add_text(tree, tvb, offset, 4, "Id (DBPROPID)");
+    id = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "DBPROPID: %08x", id);
+    offset += 4;
+    proto_item_append_text(tree_item, " Id: 0x%08x", id);
+
+    opt = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "DBPROPOPTIONS: %08x", opt);
     offset += 4;
 
-    proto_tree_add_text(tree, tvb, offset, 4, "Options (DBPROPOPTIONS)");
-    offset += 4;
-
-    proto_tree_add_text(tree, tvb, offset, 4, "Status (DBPROPSTATUS)");
+    status = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "DBPROPSTATUS: %08x", status);
     offset += 4;
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "colid");
-    tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
-    len = parse_CDbColId(tvb, offset, tree, pad_tree);
+    tr = proto_item_add_subtree(ti, ett_mswsp_prop_colid[ett_idx.prop_colid++]); //???
+    DISSECTOR_ASSERT(ett_idx.prop_colid <= array_length(ett_mswsp_prop_colid));
+    len = parse_CDbColId(tvb, offset, tr, pad_tree);
     proto_item_set_len(ti, len);
     offset += len;
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
-    tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
-    len = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree);
+    tr = proto_item_add_subtree(ti, ett_mswsp_prop_value[ett_idx.prop_value++]); //???
+    DISSECTOR_ASSERT(ett_idx.prop_value <= array_length(ett_mswsp_prop_value));
+    len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree);
     proto_item_set_len(ti, len);
     offset += len;
 
+    fprintf(stderr, "PROP: oi: %d oo: %d doff %d\n", offset_in, offset, offset - offset_in);
     return offset - offset_in;
 }
+
+static struct {
+    const char *guid;
+    const char *def;
+    const char *desc;
+} GuidPropertySet[] = {
+    {"a9bd1526-6a80-11d0-8c9d-0020af1d740e", "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework"},
+    {"a7ac77ed-f8d7-11ce-a798-0020f8008025", "DBPROPSET_QUERYEXT", "Query extension"},
+    {"afafaca5-b5d1-11d0-8c62-00c04fc2db8d", "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core"},
+};
+
 
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
     const int offset_in = offset;
     int len, i, num;
+    e_guid_t guid;
+    const char *guid_str;
+    proto_item *ti, *tree_item = proto_tree_get_parent(tree);
 
-    proto_tree_add_text(tree, tvb, offset, 16, "guidPropertySet");
+    tvb_get_letohguid(tvb, offset, &guid);
+    guid_str =  guid_to_str(&guid);
+    ti = proto_tree_add_text(tree, tvb, offset, 16, "guidPropertySet: %s", guid_str);
     offset += 16;
+    for (i=0; (unsigned)i<array_length(GuidPropertySet); i++) {
+        if (strcasecmp(GuidPropertySet[i].guid, guid_str) == 0) {
+            proto_item_append_text(ti, " (%s)", GuidPropertySet[i].def);
+            proto_item_append_text(tree_item, " %s (%s)",
+                                   GuidPropertySet[i].def,
+                                   GuidPropertySet[i].desc);
+            break;
+        }
+    }
+    if (i==array_length(GuidPropertySet)) {
+         proto_item_append_text(tree_item, " {%s}", guid_str);
+    }
 
     len = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
     offset += len;
 
     num = tvb_get_letoh24(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "cProperties");
+    proto_tree_add_text(tree, tvb, offset, 4, "cProperties: %d", num);
     offset += 4;
+    proto_item_append_text(tree_item, " Size: %d", num);
 
     for (i = 0; i<num; i++) {
         proto_item *ti;
@@ -190,33 +364,64 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         offset += len;
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "aProp[%d]", i);
-        tr = proto_item_add_subtree(ti, ett_mswsp_prop); //???
-
+        tr = proto_item_add_subtree(ti, ett_mswsp_prop[ett_idx.prop++]); //???
+        DISSECTOR_ASSERT(ett_idx.prop <= array_length(ett_mswsp_prop));
         len = parse_CDbProp(tvb, offset, tr, pad_tree);
         proto_item_set_len(ti, len);
         offset += len;
     }
-
     return offset - offset_in;
+}
+
+static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree, int size_offset)
+{
+    const int offset_in = offset;
+    guint32 size, num;
+    int len, i;
+
+    size = tvb_get_letoh24(tvb, size_offset);
+    proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
+                        size_offset, 4, ENC_LITTLE_ENDIAN);
+
+    num = tvb_get_letoh24(tvb, offset);
+    proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_PropSets_num, tvb,
+                        offset, 4, ENC_LITTLE_ENDIAN);
+    offset += 4;
+
+    for (i = 0; i < (int)num; i++) {
+        proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "PropertySet[%d]", i);
+        proto_tree *tr = proto_item_add_subtree(ti, ett_mswsp_propset[ett_idx.propset++]);
+        DISSECTOR_ASSERT(ett_idx.propset <= array_length(ett_mswsp_propset));
+        len = parse_CDbPropSet(tvb, offset, tr, pad_tree);
+        proto_item_set_len(ti, len);
+        offset += len;
+    }
+
+    fprintf(stderr, "ARRAY: oi: %d oo: %d doff %d size: %d\n", offset_in, offset, offset - offset_in, size);
+    return size;
 }
 
 /* Code to actually dissect the packets */
 
 static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
-    proto_item *ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, 17, -1, ENC_NA);
-    proto_tree *tree = proto_item_add_subtree(ti, ett_mswsp_msg);
+    proto_item *ti;
+    proto_tree *tree;
     gint offset = 16;
     guint len;
+
+    ZERO_STRUCT(ett_idx);
+
+    ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, 17, -1, ENC_NA);
+    tree = proto_item_add_subtree(ti, ett_mswsp_msg);
     proto_item_set_text(ti, "CPMConnect%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "Connect");
     if (in) {
-        guint32 blob_size1, blob_size2;
         guint32 blob_size1_off, blob_size2_off;
-        proto_tree *pad_tr, *pset_tr, *eset_tr;
+        proto_tree *pad_tree, *tr;
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
-        pad_tr = proto_item_add_subtree(ti, ett_mswsp_pad);
+        pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
 
         proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientVersion, tvb,
                             offset, 4, ENC_LITTLE_ENDIAN);
@@ -228,19 +433,17 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
         /* _cbBlob1 */
         blob_size1_off = offset;
-        blob_size1 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        len = parse_padding(tvb, offset, 8, pad_tr, "_paddingcbBlob2");
+        len = parse_padding(tvb, offset, 8, pad_tree, "_paddingcbBlob2");
         offset += len;
         DISSECTOR_ASSERT(len == 4);
 
         /* _cbBlob2 */
         blob_size2_off = offset;
-        blob_size2 = tvb_get_letoh24(tvb, offset);
         offset += 4;
 
-        len = parse_padding(tvb, offset, 16, pad_tr, "_padding");
+        len = parse_padding(tvb, offset, 16, pad_tree, "_padding");
         offset += len;
         DISSECTOR_ASSERT(len == 12);
 
@@ -258,40 +461,33 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
-        len = parse_padding(tvb, offset, 8, pad_tr, "_paddingcPropSets");
+        len = parse_padding(tvb, offset, 8, pad_tree, "_paddingcPropSets");
         offset += len;
         DISSECTOR_ASSERT((offset % 8) == 0);
 
-        ti = proto_tree_add_text(tree, tvb, offset, blob_size1, "PropSets");
-        pset_tr = proto_item_add_subtree(ti, ett_mswsp_connect_propsets);
-        proto_tree_add_item(pset_tr, hf_mswsp_msg_ConnectIn_Blob1, tvb,
-                            blob_size1_off, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_item(pset_tr, hf_mswsp_msg_ConnectIn_PropSets_num, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_text(pset_tr, tvb,
-                            offset+4, blob_size1-4, "PropertySet1 & 2");
-        offset += blob_size1;
+        ti = proto_tree_add_text(tree, tvb, offset, 0, "PropSets");
+        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0]);
+        len = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size1_off);
+        proto_item_set_len(ti, len);
+        offset += len;
 
-        len = parse_padding(tvb, offset, 8, pad_tr, "paddingExtPropset");
+        len = parse_padding(tvb, offset, 8, pad_tree, "paddingExtPropset");
         offset += len;
         DISSECTOR_ASSERT((offset % 8) == 0);
 
-        ti = proto_tree_add_text(tree, tvb, offset, blob_size2, "ExtPropset");
-        eset_tr = proto_item_add_subtree(ti, ett_mswsp_connect_extprops);
-        proto_tree_add_item(eset_tr, hf_mswsp_msg_ConnectIn_Blob2, tvb,
-                            blob_size2_off, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_item(eset_tr, hf_mswsp_msg_ConnectIn_ExtPropSets_num, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_text(eset_tr, tvb,
-                            offset+4, blob_size2-4, "Property sets");
-        offset += blob_size2;
-
-        len = parse_padding(tvb, offset, 8, pad_tr, NULL);
+        ti = proto_tree_add_text(tree, tvb, offset, 0, "ExtPropset");
+        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[1]);
+        len = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
+        proto_item_set_len(ti, len);
         offset += len;
-        DISSECTOR_ASSERT(offset == tvb_length(tvb));
+
+        len = parse_padding(tvb, offset, 8, pad_tree, NULL);
+        offset += len;
+//        DISSECTOR_ASSERT(offset == (int)tvb_length(tvb));
+        fprintf(stderr, "len: %d offset: %d length: %d\n", len, offset, (int)tvb_length(tvb));
 
         /* make "Padding" the last item */
-        proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tr));
+        proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tree));
     }
     return tvb_length(tvb);
 }
@@ -539,6 +735,17 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 }
 
 
+static void register_ett_array(gint arr[], int num)
+{
+    int i;
+    gint *ett[num];
+    for (i=0; i<num; i++) {
+        arr[i] = -1;
+        ett[i] = &arr[i];
+    }
+    proto_register_subtree_array(ett, num);
+}
+
 /* Register the protocol with Wireshark */
 
 /* this format is require because a script is used to build the C function
@@ -655,9 +862,6 @@ proto_register_mswsp(void)
             &ett_mswsp_hdr,
             &ett_mswsp_msg,
             &ett_mswsp_pad,
-            &ett_mswsp_connect_propsets,
-            &ett_mswsp_connect_extprops,
-            &ett_mswsp_prop,
 	};
 
 /* Register the protocol name and description */
@@ -667,6 +871,12 @@ proto_register_mswsp(void)
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_mswsp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
+        register_ett_array(ett_mswsp_propset_array, array_length(ett_mswsp_propset_array));
+        register_ett_array(ett_mswsp_propset, array_length(ett_mswsp_propset));
+        register_ett_array(ett_mswsp_prop, array_length(ett_mswsp_prop));
+        register_ett_array(ett_mswsp_prop_colid, array_length(ett_mswsp_prop_colid));
+        register_ett_array(ett_mswsp_prop_value, array_length(ett_mswsp_prop_value));
+
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
 /* (Registration of a prefs callback is not required if there are no     */
