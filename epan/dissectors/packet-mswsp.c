@@ -45,6 +45,7 @@
 /*
  * #include "packet-mswsp.h"
  */
+#include "mswsp.h"
 
 #define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
 
@@ -103,124 +104,322 @@ static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *p
     return padding;
 }
 
-enum vType {
-    VT_EMPTY       = 0x00,
-    VT_NULL        = 0x01,
-    VT_I2          = 0x02,
-    VT_I4          = 0x03,
-    VT_R4          = 0x04,
-    VT_R8          = 0x05,
-    VT_CY          = 0x06,
-    VT_DATE        = 0x07,
-    VT_BSTR        = 0x08,
-    VT_ERROR       = 0x0a,
-    VT_BOOL        = 0x0b,
-    VT_VARIANT     = 0x0c,
-    VT_DECIMAL     = 0x0e,
-    VT_I1          = 0x10,
-    VT_UI1         = 0x11,
-    VT_UI2         = 0x12,
-    VT_UI4         = 0x13,
-    VT_I8          = 0x14,
-    VT_UI8         = 0x15,
-    VT_INT         = 0x16,
-    VT_UINT        = 0x17,
-    VT_LPSTR       = 0x1e,
-    VT_LPWSTR      = 0x1f,
-    VT_COMPRESSED_LPWSTR = 0x23,
-    VT_FILETIME    = 0x40,
-    VT_BLOB        = 0x41,
-    VT_BLOB_OBJECT = 0x46,
-    VT_CLSID       = 0x48,
-    VT_VECTOR      = 0x1000,
-    VT_ARRAY       = 0x2000,
+static int read0(tvbuff_t *tvb _U_, int offset _U_, union vValue *v _U_, gboolean vector _U_)
+{
+    return 0;
+}
+
+static int read1(tvbuff_t *tvb, int offset, union vValue *v, gboolean vector)
+{
+    if (vector) {
+        int num = tvb_get_letohl(tvb, offset);
+        const guint8 *ptr = tvb_get_ptr(tvb, offset+4, num);
+        v->vt_vector.len = num;
+        v->vt_vector.vt_ui1 = se_memdup(ptr, num);
+        return 4 + num;
+    } else {
+        v->vt_ui1 = tvb_get_guint8(tvb, offset);
+        return 1;
+   }
+}
+
+static int read2(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    if (vector) {
+        int i, num = tvb_get_letohl(tvb, offset);
+        guint16 *arr = se_alloc(2*num);
+        offset += 4;
+
+        for (i=0; i<num; i++) {
+            arr[i] = tvb_get_letohs(tvb, offset);
+            offset += 2;
+        }
+
+        v->vt_vector.len = num;
+        v->vt_vector.vt_ui2 = arr;
+
+        return 4 + 2*num;
+    } else {
+        v->vt_ui2 = tvb_get_letohs(tvb, offset);
+        return 2;
+    }
+}
+
+static int read4(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    if (vector) {
+        int i, num = tvb_get_letohl(tvb, offset);
+        guint32 *arr = se_alloc(4*num);
+        offset += 4;
+
+        for (i=0; i<num; i++) {
+            arr[i] = tvb_get_letohl(tvb, offset);
+            offset += 4;
+        }
+
+        v->vt_vector.len = num;
+        v->vt_vector.vt_ui4 = arr;
+
+        return 4 + 2*num;
+    } else {
+        v->vt_ui4 = tvb_get_letohl(tvb, offset);
+        return 4;
+    }
+}
+
+static int read8(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    if (vector) {
+        int i, num = tvb_get_letohl(tvb, offset);
+        guint64 *arr = se_alloc(8*num);
+        offset += 4;
+
+        for (i=0; i<num; i++) {
+            arr[i] = tvb_get_letoh64(tvb, offset);
+            offset += 8;
+        }
+
+        v->vt_vector.len = num;
+        v->vt_vector.vt_ui8 = arr;
+
+        return 4 + 8*num;
+    } else {
+        v->vt_ui8 = tvb_get_letoh64(tvb, offset);
+        return 8;
+    }
+}
+
+static int read_blob(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    if (vector) {
+        /* invalid */
+        return -1;
+    } else {
+        guint32 len = tvb_get_letohl(tvb, offset);
+        const guint8 *data = tvb_get_ptr(tvb, offset + 4, len);
+
+        v->vt_blob.size = len;
+        v->vt_blob.data = se_memdup(data, len);
+
+        return 4 + len;
+    }
+}
+
+static int read_bstr(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    gint len;
+    const guint8 *ptr;
+    if (vector) {
+        const int offset_in = offset;
+        guint32 num = tvb_get_letohl(tvb, offset);
+        struct data_str *data = se_alloc((num+1)*sizeof(struct data_str));
+        int i;
+        offset += 4;
+
+        for (i=0; (unsigned)i<num; i++) {
+            len = tvb_get_letohl(tvb, offset);
+            offset += 4;
+            ptr = tvb_get_ptr(tvb, offset, len);
+            offset += len;
+
+            data[i].len = len;
+            data[i].str = se_strndup(ptr, len);
+
+            if (offset % 4) {
+                int padding = 4 - (offset % 4);
+                offset += padding;
+            }
+        }
+
+        v->vt_vector.len = num;
+        v->vt_vector.vt_lpstr = data;
+
+        return offset - offset_in;
+    } else {
+        len = tvb_get_letohl(tvb, offset);
+        ptr = tvb_get_ptr(tvb, offset + 4, len);
+
+        v->vt_blob.size = len;
+        v->vt_blob.data = se_strndup(ptr, len);
+
+        return 4 + len;
+    }
+}
+
+static int read_lpstr(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    gint len;
+    if (vector) {
+        const int offset_in = offset;
+        guint32 num = tvb_get_letohl(tvb, offset);
+        struct data_str *data = se_alloc((num+1)*sizeof(struct data_str));
+        int i;
+        offset += 4;
+
+        for (i=0; (unsigned)i<num; i++) {
+            data[i].len = tvb_get_letohl(tvb, offset);
+            offset += 4;
+
+            data[i].str = tvb_get_seasonal_stringz(tvb, offset, &len);
+            offset += len;
+
+            if (offset % 4) {
+                int padding = 4 - (offset % 4);
+                offset += padding;
+            }
+        }
+        v->vt_vector.len = num;
+        v->vt_vector.vt_lpstr = data;
+        return offset - offset_in;
+    } else {
+        v->vt_lpstr.len = tvb_get_letohl(tvb, offset);
+        v->vt_lpstr.str = tvb_get_seasonal_stringz(tvb, offset + 4, &len);
+        /* XXX test vt_lpstr.len == len */
+        return 4 + len;
+    }
+}
+
+static int read_lpwstr(tvbuff_t *tvb , int offset , union vValue *v, gboolean vector)
+{
+    gint len;
+    gchar *str;
+    if (vector) {
+        const int offset_in = offset;
+        guint32 num = tvb_get_letohl(tvb, offset);
+        struct data_str *data = se_alloc((num+1)*sizeof(struct data_str));
+        int i;
+        offset += 4;
+
+        for (i=0; (unsigned)i<num; i++) {
+            data[i].len = tvb_get_letohl(tvb, offset);
+            offset += 4;
+
+            str = tvb_get_ephemeral_unicode_stringz(tvb, offset, &len, ENC_LITTLE_ENDIAN);
+            data[i].str = se_strdup(str);
+            offset += len;
+
+            if (offset % 4) {
+                int padding = 4 - (offset % 4);
+                offset += padding;
+            }
+        }
+        v->vt_vector.len = num;
+        v->vt_vector.vt_lpstr = data;
+        return offset - offset_in;
+    } else {
+        v->vt_lpwstr.len = tvb_get_letohl(tvb, offset);
+
+        str = tvb_get_ephemeral_unicode_stringz(tvb, offset + 4, &len, ENC_LITTLE_ENDIAN);
+        v->vt_lpwstr.str = se_strdup (str);
+
+        return 4 + len;
+    }
+}
+
+
+
+struct {
+    enum vType vType;
+    const char *str;
+    int len;
+    int (*read)(tvbuff_t *tvb, int offset, union vValue *vValue, gboolean vector);
+} VT_TYPE[] = {
+    {VT_EMPTY,   "VT_EMPTY",     0, read0},
+    {VT_NULL,    "VT_NULL",      0, read0},
+    {VT_I2,      "VT_I2",        2, read2},
+    {VT_I4,      "VT_I4",        4, read4},
+    {VT_R4,      "VT_R4",        4, read4},
+    {VT_R8,      "VT_R8",        8, read8},
+    {VT_CY,      "VT_CY",        8, read8},
+    {VT_DATE,    "VT_DATE",      8, read8},
+    {VT_BSTR,    "VT_BSTR",     -1, read_blob},
+    {VT_ERROR,   "VT_ERROR",     8, read8},
+    {VT_BOOL,    "VT_BOOL",      2, read2},
+    {VT_VARIANT, "VT_VARIANT",  -1, NULL},
+    {VT_DECIMAL, "VT_DECIMAL",  16, NULL},
+    {VT_I1,      "VT_I1",        1, read1},
+    {VT_UI1,     "VT_UI1",       1, read1},
+    {VT_UI2,     "VT_UI2",       2, read2},
+    {VT_UI4,     "VT_UI4",       4, read4},
+    {VT_I8,      "VT_I8",        8, read8},
+    {VT_UI8,     "VT_UI8",       8, read8},
+    {VT_INT,     "VT_INT",       4, read4},
+    {VT_UINT,    "VT_UINT",      4, read4},
+    {VT_LPSTR,   "VT_LPSTR",    -1, read_lpstr},
+    {VT_LPWSTR,  "VT_LPWSTR",   -1, read_lpwstr},
+    {VT_COMPRESSED_LPWSTR, "VT_COMPRESSED_LPWSTR", -1, NULL},
+    {VT_FILETIME, "VT_FILETIME", 8, read8},
+    {VT_BLOB,     "VT_BLOB",    -1, read_blob},
+    {VT_BLOB_OBJECT, "VT_BLOB_OBJECT", -1, read_blob},
+    {VT_CLSID,    "VT_CLSID",   16, NULL},
 };
 
-static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
+                                     struct CBaseStorageVariant *value)
 {
     const int offset_in = offset;
-    int len;
+    int i, len;
     enum vType vType;
-    guint8 vData1, vData2;
     gboolean is_vt_vector, is_vt_array;
     proto_item *ti;
 
     vType = tvb_get_letohs(tvb, offset);
-    ti = proto_tree_add_text(tree, tvb, offset, 2, "vType: (0x%04x)", (unsigned)vType);
+    ti = proto_tree_add_text(tree, tvb, offset, 2, "vType");
     offset += 2;
-    is_vt_vector = vType & VT_VECTOR;
-    is_vt_array  =  vType & VT_ARRAY;
 
-    proto_tree_add_text(tree, tvb, offset, 1, "vData1");
-    vData1 = tvb_get_guint8(tvb, offset);
+    is_vt_vector = !!(vType & VT_VECTOR);
+    is_vt_array  = !!(vType & VT_ARRAY);
+
+    value->vType = vType & 0xff;
+    value->vType_high = vType & 0xff00;
+
+    value->vData1 = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "vData1: %d", value->vData1);
     offset += 1;
 
-    proto_tree_add_text(tree, tvb, offset, 1, "vData2");
-    vData1 = tvb_get_guint8(tvb, offset);
+    value->vData2 = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "vData2: %d", value->vData2);
     offset += 1;
 
-    switch (vType & 0xff) {
-    case VT_EMPTY:
-    case VT_NULL:
-        len = 0;
-        break;
-    case VT_I1:
-    case VT_UI1:
-        len = 1;
-        break;
-    case VT_I2:
-    case VT_UI2:
-    case VT_BOOL:
-        len = 2;
-        break;
-    case VT_I4:
-    case VT_UI4:
-    case VT_R4:
-    case VT_INT:
-    case VT_UINT:
-    case VT_ERROR:
-        len = 4;
-        break;
-    case VT_I8:
-    case VT_UI8:
-    case VT_R8:
-    case VT_CY:
-    case VT_DATE:
-    case VT_FILETIME:
-        len = 8;
-        break;
-    case VT_LPWSTR:
-        len = 4 + tvb_unicode_strsize(tvb, offset+4);
-        break;
-    case VT_LPSTR:
-        len = 4 + tvb_strsize(tvb, offset+4);
-        break;
-    case VT_BSTR:
-    case VT_BLOB:
-    case VT_BLOB_OBJECT:
-        len = 4 + tvb_get_letoh24(tvb, offset);
-        break;
-    default:
-        proto_item_append_text(ti, ": sorry, vType %02x not handled yet!", (unsigned)vType);
-        goto done;
+    fprintf(stderr, "VTYPE: 0x%04x\n", vType);
+    for (i=0; (unsigned)i<array_length(VT_TYPE); i++) {
+        if (value->vType == VT_TYPE[i].vType) {
+            break;
+        }
+    }
+    if (i == array_length(VT_TYPE)) {
+        goto not_supported;
     }
 
+    proto_item_append_text(ti, ": %s", VT_TYPE[i].str);
+    if (is_vt_vector) {
+        proto_item_append_text(ti, "|VT_VECTOR");
+    }
     if (is_vt_array) {
-        proto_item_append_text(ti, ": sorry, Array of vType %04x not handled yet!", (unsigned)vType);
-        goto done;
+        proto_item_append_text(ti, "|VT_ARRAY");
+        goto not_supported;
     }
+
+    if (VT_TYPE[i].read == NULL) {
+        goto not_supported;
+    }
+
+    len = VT_TYPE[i].read(tvb, offset, &value->vValue, is_vt_vector);
+    if (len == -1) {
+        goto not_supported;
+    }
+    ti = proto_tree_add_text(tree, tvb, offset, len, "vValue");
+    offset += len;
 
     if (is_vt_vector ) {
-        //XXX lpstr etc. not supported;
-        guint32 num = tvb_get_letoh24(tvb, offset);
-        len = MAX(len, 4) * num + 4;
+        proto_item_append_text(ti, " [%d]", value->vValue.vt_vector.len);
     }
-
-    proto_tree_add_text(tree, tvb, offset, len, "vValue");
-    offset += len;
 
 done:
     return offset - offset_in;
+    not_supported:
+        proto_item_append_text(ti, ": sorry, vType %02x not handled yet!", (unsigned)vType);
+        return offset - offset_in;
 }
 
 enum {
@@ -262,12 +461,12 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
         len = ulId; //*2 ???
         name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "vString: \"%s\"", name);
-        proto_item_append_text(tree_item, "\"%s\"", name);
+        proto_item_append_text(tree_item, " \"%s\"", name);
         offset += len;
     } else if (eKind == DBKIND_GUID_PROPID) {
         proto_item_append_text(tree_item, " %08x", ulId);
     } else {
-        proto_item_append_string(tree_item, "<INVALID>");
+        proto_item_append_text(tree_item, "<INVALID>");
     }
 
     return offset - offset_in;
@@ -278,6 +477,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     const int offset_in = offset;
     int len;
     guint32 id, opt, status;
+    struct CBaseStorageVariant value;
     proto_item *ti, *tree_item = proto_tree_get_parent(tree);
     proto_tree *tr;
 
@@ -304,7 +504,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
     tr = proto_item_add_subtree(ti, ett_mswsp_prop_value[ett_idx.prop_value++]); //???
     DISSECTOR_ASSERT(ett_idx.prop_value <= array_length(ett_mswsp_prop_value));
-    len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree);
+    len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &value);
     proto_item_set_len(ti, len);
     offset += len;
 
