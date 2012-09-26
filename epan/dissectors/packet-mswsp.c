@@ -955,6 +955,9 @@ static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, prot
 int
 dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 {
+    static const char *dbg_wait = NULL;
+    static int wait_frame = -1;
+
     proto_tree *mswsp_tree = NULL;
     struct {
         guint32 msg;
@@ -966,6 +969,22 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 
     if (tvb_length(tvb) < 16) {
         return 0;
+    }
+
+    if (dbg_wait == NULL) {
+        dbg_wait = getenv("DBG_FRAME");
+        if (dbg_wait == NULL) {
+            dbg_wait = "no";
+        } else {
+            wait_frame = atoi(dbg_wait);
+        }
+    }
+
+    if ((int)pinfo->fd->num == wait_frame) {
+        static volatile gboolean wait = 1;
+        while(wait) {
+            sleep(1);
+        }
     }
 
     hdr.msg = tvb_get_letoh24(tvb, 0);
