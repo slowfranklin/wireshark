@@ -467,6 +467,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
     enum vType vType;
     gboolean is_vt_vector, is_vt_array;
     proto_item *ti;
+    proto_tree *tr;
 
     vType = tvb_get_letohs(tvb, offset);
     ti = proto_tree_add_text(tree, tvb, offset, 2, "vType");
@@ -502,27 +503,57 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
     }
     if (is_vt_array) {
         proto_item_append_text(ti, "|VT_ARRAY");
-        goto not_supported;
+//        goto not_supported;
     }
 
-    if (VT_TYPE[i].read == NULL) {
-        goto not_supported;
+    ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
+    tr = proto_item_get_parent(ti);
+
+    if (!is_vt_array) {
+        if (VT_TYPE[i].read == NULL) {
+            goto not_supported;
+        }
+
+        len = VT_TYPE[i].read(tvb, offset, &value->vValue, is_vt_vector);
+        if (len == -1) {
+            goto not_supported;
+        }
+        proto_item_set_len(ti, len);
+
+        if (is_vt_vector ) {
+            proto_tree_add_text(tr, tvb, offset, 4, "num: %d", value->vValue.vt_vector.len);
+            proto_item_append_text(ti, " [%d]", value->vValue.vt_vector.len);
+        }
+
+        offset += len;
+    } else {
+        guint16 cDims, fFeatures;
+        guint32 cbElements, cElements, lLbound;
+
+        cDims = tvb_get_letohs(tvb, offset);
+        proto_tree_add_text(tr, tvb, offset, 2, "cDims: %d", cDims);
+        offset += 2;
+
+        fFeatures = tvb_get_letohs(tvb, offset);
+        proto_tree_add_text(tr, tvb, offset, 2, "fFeaturess: %d", fFeatures);
+        offset += 2;
+
+        cbElements = tvb_get_letohl(tvb, offset);
+        proto_tree_add_text(tr, tvb, offset, 4, "cbElements: %d", cbElements);
+        offset += 4;
+        for (i=0; i<cDims; i++) {
+            cElements = tvb_get_letohl(tvb, offset);
+            lLbound =  tvb_get_letohl(tvb, offset + 4);
+            proto_tree_add_text(tr, tvb, offset, 8, "Rgsabound[%d]: (%d:%d)", i, cElements, lLbound);
+            offset += 8;
+        }
+
     }
 
-    len = VT_TYPE[i].read(tvb, offset, &value->vValue, is_vt_vector);
-    if (len == -1) {
-        goto not_supported;
-    }
-    ti = proto_tree_add_text(tree, tvb, offset, len, "vValue");
-    offset += len;
 
-    if (is_vt_vector ) {
-        proto_item_append_text(ti, " [%d]", value->vValue.vt_vector.len);
-    }
-
-done:
+//done:
     return offset - offset_in;
-    not_supported:
+not_supported:
         proto_item_append_text(ti, ": sorry, vType %02x not handled yet!", (unsigned)vType);
         return offset - offset_in;
 }
