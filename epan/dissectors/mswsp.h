@@ -33,7 +33,7 @@ enum vType {
 };
 
 struct data_blob {
-	void *data;
+	guint8 *data;
 	guint32 size;
 };
 
@@ -42,48 +42,77 @@ struct data_str {
 	guint32 len;
 };
 
+struct vt_decimal {
+	guint32 hi, lo, mid;
+};
+
+
+struct vt_vector {
+	guint32 len;
+	union  {
+		gint8 *vt_i1;
+		guint8 *vt_ui1;
+		gint16 *vt_i2;
+		guint16 *vt_ui2, *vt_bool;
+		gint32 *vt_i4;
+		guint32 *vt_ui4, *vt_error;
+		gint64 *vt_i8, *vt_cy, *vt_filetime;
+		guint64 *vt_ui8;
+		float *vt_r4;
+		double *vt_r8, *vt_date;
+		e_guid_t *vt_clsid;
+		struct data_blob *vt_blob, *vt_blob_object;
+		struct data_str *vt_lpstr, *vt_lpwstr, *vt_compressed_lpwstr, *vt_bstr;
+	} u;
+};
+
+struct SAFEARRAYBOUNDS {
+	guint32 cElements, lLbound;
+};
+
+struct vt_array {
+	struct vt_vector vData;
+	guint16 cDims, fFeature;
+	guint32 cbElements;
+
+	struct SAFEARRAYBOUNDS *Rgsabound;
+};
+
 union vValue {
-	gint8 vt_i1;
-	guint8 vt_ui1;
-	gint16 vt_i2;
-	guint16 vt_ui2, vt_bool;
-	gint32 vt_i4, vt_int;
-	guint32 vt_ui4, vt_uint, vt_error;
-	float vt_r4;
-	gint64 vt_i8, vt_cy, vt_filetime;
-	guint64 vt_ui8;
-	double vt_r8, vt_date;
-	e_guid_t vt_clsid;
-	struct {
-		guint32 hi, lo, mid;
-	} vt_decimal;
-	struct data_blob vt_blob, vt_blob_object;
-	struct data_str vt_lpstr, vt_lpwstr, vt_compressed_lpwstr, vt_bstr;
-	struct {
-		guint32 len;
-		union {
-			gint8 *vt_i1;
-			guint8 *vt_ui1;
-			gint16 *vt_i2;
-			guint16 *vt_ui2, *vt_bool;
-			gint32 *vt_i4;
-			guint32 *vt_ui4, *vt_error;
-			float *vt_r4;
-			gint64 *vt_i8, *vt_cy, *vt_filetime;
-			guint64 *vt_ui8;
-			double *vt_r8, *vt_date;
-			e_guid_t *vt_clsid;
-			struct data_blob *vt_blob, *vt_blob_object;
-			struct data_str *vt_lpstr, *vt_lpwstr, *vt_compressed_lpwstr, *vt_bstr;
-		};
-	} vt_vector;
+	union {
+		gint8 vt_i1;
+		guint8 vt_ui1;
+		gint16 vt_i2;
+		guint16 vt_ui2, vt_bool;
+		gint32 vt_i4, vt_int;
+		guint32 vt_ui4, vt_uint, vt_error;
+		gint64 vt_i8, vt_cy, vt_filetime;
+		guint64 vt_ui8;
+		double vt_r8, vt_date;
+		e_guid_t vt_clsid;
+		float vt_r4;
+		struct vt_decimal vt_decimal;
+		struct data_blob vt_blob, vt_blob_object;
+		struct data_str vt_lpstr, vt_lpwstr, vt_compressed_lpwstr, vt_bstr;
+	} vt_single;
+	struct vt_vector vt_vector;
+	struct vt_array vt_array;
+};
+
+struct vtype {
+	enum vType tag; /* base type, hight bits cleared */
+	const char *str;  /* string rep of base type */
+	int size;        /* -1 for variable length */
+	int (*tvb_get)(tvbuff_t*, int, void*);
+	void (*strbuf_append)(emem_strbuf_t*, void*);
 };
 
 /* 2.2.1.1 */
 struct CBaseStorageVariant {
 	enum vType vType;
-	enum vType vType_high;
 	guint16 vData1;
 	guint16 vData2;
 	union vValue vValue;
+
+	struct vtype *type;
 };
