@@ -332,7 +332,7 @@ struct {
     {VT_R8,      "VT_R8",        8, read8},
     {VT_CY,      "VT_CY",        8, read8},
     {VT_DATE,    "VT_DATE",      8, read8},
-    {VT_BSTR,    "VT_BSTR",     -1, read_blob},
+    {VT_BSTR,    "VT_BSTR",     -1, read_bstr},
     {VT_ERROR,   "VT_ERROR",     8, read8},
     {VT_BOOL,    "VT_BOOL",      2, read2},
     {VT_VARIANT, "VT_VARIANT",  -1, NULL},
