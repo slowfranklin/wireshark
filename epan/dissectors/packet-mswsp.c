@@ -354,6 +354,111 @@ struct {
     {VT_CLSID,    "VT_CLSID",   16, NULL},
 };
 
+static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
+{
+
+    emem_strbuf_t *strbuf = ep_strbuf_new("VT_");
+
+    if (value->vType_high) {
+        return "[]";
+    }
+
+    switch (value->vType) {
+    case VT_EMPTY:
+        ep_strbuf_printf(strbuf, "EMPTY");
+        break;
+    case VT_NULL:
+        ep_strbuf_printf(strbuf, "NULL");
+        break;
+    case VT_I1:
+        ep_strbuf_printf(strbuf, "I2: %d", (int)value->vValue.vt_i1);
+        break;
+    case VT_I2:
+        ep_strbuf_printf(strbuf, "I2: %d", (int)value->vValue.vt_i2);
+        break;
+    case VT_I4:
+        ep_strbuf_printf(strbuf, "I4: %d", value->vValue.vt_i4);
+        break;
+    case VT_I8:
+        ep_strbuf_printf(strbuf, "I4: %ld", value->vValue.vt_i8);
+        break;
+    case VT_INT:
+        ep_strbuf_printf(strbuf, "INT: %d", value->vValue.vt_int);
+        break;
+    case VT_UI1:
+        ep_strbuf_printf(strbuf, "UI1: %u", (unsigned)value->vValue.vt_ui1);
+        break;
+    case VT_UI2:
+        ep_strbuf_printf(strbuf, "UI2: %u", (unsigned)value->vValue.vt_ui2);
+        break;
+    case VT_UI4:
+        ep_strbuf_printf(strbuf, "UI4: %u", value->vValue.vt_ui4);
+        break;
+    case VT_UI8:
+        ep_strbuf_printf(strbuf, "UI8: %lu", value->vValue.vt_ui8);
+        break;
+    case VT_UINT:
+        ep_strbuf_printf(strbuf, "UINT: %u", value->vValue.vt_uint);
+        break;
+    case VT_R4:
+        ep_strbuf_printf(strbuf, "R4: %g", (double)value->vValue.vt_r4);
+        break;
+    case VT_R8:
+        ep_strbuf_printf(strbuf, "R8: %g", value->vValue.vt_r8);
+        break;
+    case VT_CY:
+        ep_strbuf_printf(strbuf, "CY: %ld", value->vValue.vt_cy);
+        break;
+    case VT_DATE:
+        ep_strbuf_printf(strbuf, "DATE: %g", value->vValue.vt_date);
+        break;
+    case VT_BSTR:
+        ep_strbuf_printf(strbuf, "BSTR: \"%.*s\"", value->vValue.vt_bstr.len,  value->vValue.vt_bstr.str);
+        break;
+    case VT_LPSTR:
+        ep_strbuf_printf(strbuf, "LPSTR: \"%s\"", value->vValue.vt_lpstr.str);
+        break;
+    case VT_LPWSTR:
+        ep_strbuf_printf(strbuf, "LPWSTR: \"%s\"", value->vValue.vt_lpwstr.str);
+        break;
+    case VT_COMPRESSED_LPWSTR:
+        ep_strbuf_printf(strbuf, "COMPRESSED_LPWSTR: \"%s\"", value->vValue.vt_compressed_lpwstr.str);
+        break;
+    case VT_ERROR:
+        ep_strbuf_printf(strbuf, "ERROR: 0x%x", value->vValue.vt_error);
+        break;
+    case VT_BOOL:
+        if (value->vValue.vt_bool == 0)
+            ep_strbuf_printf(strbuf, "BOOL: False");
+        else if (value->vValue.vt_bool == 0xffff)
+            ep_strbuf_printf(strbuf, "BOOL: True");
+        else
+            ep_strbuf_printf(strbuf, "BOOL: Invalid (0x%x)", (unsigned)value->vValue.vt_bool);
+        break;
+    case VT_VARIANT:
+        ep_strbuf_printf(strbuf, "VT_VARIANT");
+        break;
+    case VT_DECIMAL:
+        ep_strbuf_printf(strbuf, "VT_DECIMAL");
+        break;
+    case VT_FILETIME:
+        ep_strbuf_printf(strbuf, "FILETIME: %lu", value->vValue.vt_ui8);
+        break;
+    case VT_BLOB:
+        ep_strbuf_printf(strbuf, "BLOB: size %d", value->vValue.vt_blob.size);
+        break;
+    case VT_BLOB_OBJECT:
+        ep_strbuf_printf(strbuf, "BLOB_OBJECT: size %d", value->vValue.vt_blob_object.size);
+        break;
+    case VT_CLSID:
+        ep_strbuf_printf(strbuf, "CLSID: %s", guid_to_str(&value->vValue.vt_clsid));
+        break;
+    default:
+        ep_strbuf_printf(strbuf, "INVALID 0x%4x", value->vType);
+    }
+    return strbuf->str;
+}
+
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                      struct CBaseStorageVariant *value)
 {
@@ -480,6 +585,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     struct CBaseStorageVariant value;
     proto_item *ti, *tree_item = proto_tree_get_parent(tree);
     proto_tree *tr;
+    char *str;
 
     id = tvb_get_letoh24(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "DBPROPID: %08x", id);
@@ -506,9 +612,11 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     DISSECTOR_ASSERT(ett_idx.prop_value <= array_length(ett_mswsp_prop_value));
     len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &value);
     proto_item_set_len(ti, len);
+    str = str_CBaseStorageVariant(&value);
+    proto_item_append_text(tree_item, " %s", str);
+    proto_item_append_text(ti, " %s", str);
     offset += len;
 
-    fprintf(stderr, "PROP: oi: %d oo: %d doff %d\n", offset_in, offset, offset - offset_in);
     return offset - offset_in;
 }
 
