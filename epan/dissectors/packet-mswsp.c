@@ -69,6 +69,8 @@ static int hf_mswsp_msg_ConnectIn_MachineName = -1;
 static int hf_mswsp_msg_ConnectIn_UserName = -1;
 static int hf_mswsp_msg_ConnectIn_PropSets_num = -1;
 static int hf_mswsp_msg_ConnectIn_ExtPropSets_num = -1;
+static int hf_mswsp_msg_ConnectOut_ServerVersion = -1;
+
 
 /* Global sample preference ("controls" display of numbers) */
 static gboolean gPREF_HEX = FALSE;
@@ -799,6 +801,10 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
         /* make "Padding" the last item */
         proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tree));
+    } else {
+        proto_tree_add_item(tree, hf_mswsp_msg_ConnectOut_ServerVersion, tvb,
+                            offset, 4, ENC_LITTLE_ENDIAN);
+        offset += 4;
     }
     return tvb_length(tvb);
 }
@@ -1111,7 +1117,10 @@ proto_register_mswsp(void)
             {0x000000F3, "CPMSetScopePrioritization"}, /* In/Out */
             {0x000000F4, "CPMGetScopeStatistics"},     /* In/Out */
         };
-
+        static const range_string server_versions[] = {
+            {0, 0xffff, "32 Bit"},
+            {0x10000, G_MAXUINT, "64 Bit"},
+        };
 	static hf_register_info hf[] = {
 		{ &hf_mswsp_hdr,
 			{ "Header",           "mswsp.hdr",
@@ -1147,6 +1156,11 @@ proto_register_mswsp(void)
                   { "Version", "mswsp.ConnectIn.version",
                     FT_UINT32, BASE_HEX , NULL, 0,
                     "Checksum",HFILL }
+		},
+		{ &hf_mswsp_msg_ConnectOut_ServerVersion,
+                  { "Version", "mswsp.ConnectOut.version",
+                    FT_UINT32, BASE_RANGE_STRING | BASE_HEX, RVALS(server_versions), 0,
+                    "Server version",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_ClientIsRemote,
                   { "Remote", "mswsp.ConnectIn.isRemote",
