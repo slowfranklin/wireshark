@@ -61,7 +61,7 @@ static int hf_mswsp_hdr_msg = -1;
 static int hf_mswsp_hdr_status = -1;
 static int hf_mswsp_hdr_checksum = -1;
 static int hf_mswsp_hdr_reserved = -1;
-static int hf_mswsp_msg_ConnectIn_ClientVersion = -1;
+static int hf_mswsp_msg_Connect_Version = -1;
 static int hf_mswsp_msg_ConnectIn_ClientIsRemote = -1;
 static int hf_mswsp_msg_ConnectIn_Blob1 = -1;
 static int hf_mswsp_msg_ConnectIn_Blob2 = -1;
@@ -69,7 +69,6 @@ static int hf_mswsp_msg_ConnectIn_MachineName = -1;
 static int hf_mswsp_msg_ConnectIn_UserName = -1;
 static int hf_mswsp_msg_ConnectIn_PropSets_num = -1;
 static int hf_mswsp_msg_ConnectIn_ExtPropSets_num = -1;
-static int hf_mswsp_msg_ConnectOut_ServerVersion = -1;
 
 
 /* Global sample preference ("controls" display of numbers) */
@@ -730,16 +729,32 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
     tree = proto_item_add_subtree(ti, ett_mswsp_msg);
     proto_item_set_text(ti, "CPMConnect%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "Connect");
+
+    guint32 version = tvb_get_letohl(tvb, offset);
+    ti = proto_tree_add_item(tree, hf_mswsp_msg_Connect_Version, tvb,
+                             offset, 4, ENC_LITTLE_ENDIAN);
+    if (version & 0xffff0000) {
+        proto_item_append_text(ti, " 64 bit");
+    }
+    switch (version & 0xffff) {
+    case 0x102:
+        proto_item_append_text(ti, " w2k8 or vista");
+        break;
+    case 0x109:
+        proto_item_append_text(ti, " XP or w2k3, with Windows Search 4.0");
+        break;
+    case 0x700:
+        proto_item_append_text(ti, " win7 or w2k8r2");
+        break;
+    }
+    offset += 4;
+
     if (in) {
         guint32 blob_size1_off, blob_size2_off;
         proto_tree *pad_tree, *tr;
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
-
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientVersion, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
-        offset += 4;
 
         proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_ClientIsRemote, tvb,
                             offset, 4, ENC_LITTLE_ENDIAN);
@@ -802,9 +817,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         /* make "Padding" the last item */
         proto_tree_move_item(tree, ti, proto_tree_get_parent(pad_tree));
     } else {
-        proto_tree_add_item(tree, hf_mswsp_msg_ConnectOut_ServerVersion, tvb,
-                            offset, 4, ENC_LITTLE_ENDIAN);
-        offset += 4;
+
     }
     return tvb_length(tvb);
 }
@@ -1117,10 +1130,6 @@ proto_register_mswsp(void)
             {0x000000F3, "CPMSetScopePrioritization"}, /* In/Out */
             {0x000000F4, "CPMGetScopeStatistics"},     /* In/Out */
         };
-        static const range_string server_versions[] = {
-            {0, 0xffff, "32 Bit"},
-            {0x10000, G_MAXUINT, "64 Bit"},
-        };
 	static hf_register_info hf[] = {
 		{ &hf_mswsp_hdr,
 			{ "Header",           "mswsp.hdr",
@@ -1152,15 +1161,10 @@ proto_register_mswsp(void)
 			FT_NONE, BASE_NONE , NULL, 0,
 			"Message", HFILL }
 		},
-		{ &hf_mswsp_msg_ConnectIn_ClientVersion,
-                  { "Version", "mswsp.ConnectIn.version",
+		{ &hf_mswsp_msg_Connect_Version,
+                  { "Version", "mswsp.Connect.version",
                     FT_UINT32, BASE_HEX , NULL, 0,
-                    "Checksum",HFILL }
-		},
-		{ &hf_mswsp_msg_ConnectOut_ServerVersion,
-                  { "Version", "mswsp.ConnectOut.version",
-                    FT_UINT32, BASE_RANGE_STRING | BASE_HEX, RVALS(server_versions), 0,
-                    "Server version",HFILL }
+                    "Version",HFILL }
 		},
 		{ &hf_mswsp_msg_ConnectIn_ClientIsRemote,
                   { "Remote", "mswsp.ConnectIn.isRemote",
