@@ -708,7 +708,6 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
 
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    const int offset_in = offset;
     int len;
     guint32 id, opt, status;
     struct CBaseStorageVariant value;
@@ -745,7 +744,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     proto_item_append_text(tree_item, " %s", str);
     proto_item_append_text(ti, " %s", str);
 
-    return offset - offset_in;
+    return offset;
 }
 
 static struct {
@@ -762,7 +761,7 @@ static struct {
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
     const int offset_in = offset;
-    int len, i, num;
+    int i, num;
     e_guid_t guid;
     const char *guid_str;
     proto_item *ti, *tree_item = proto_tree_get_parent(tree);
@@ -800,9 +799,8 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         ti = proto_tree_add_text(tree, tvb, offset, 0, "aProp[%d]", i);
         tr = proto_item_add_subtree(ti, ett_mswsp_prop[ett_idx.prop++]); //???
         DISSECTOR_ASSERT(ett_idx.prop <= array_length(ett_mswsp_prop));
-        len = parse_CDbProp(tvb, offset, tr, pad_tree);
-        proto_item_set_len(ti, len);
-        offset += len;
+        offset = parse_CDbProp(tvb, offset, tr, pad_tree);
+        proto_item_set_end(ti, tvb, offset);
     }
     return offset - offset_in;
 }
