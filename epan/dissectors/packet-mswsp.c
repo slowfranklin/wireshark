@@ -808,7 +808,7 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
 {
     const int offset_in = offset;
     guint32 size, num;
-    int len, i;
+    int i;
 
     size = tvb_get_letoh24(tvb, size_offset);
     proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
@@ -828,7 +828,7 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
     }
 
     DISSECTOR_ASSERT(offset - offset_in == (int)size);
-    return size;
+    return offset;
 }
 
 /* Code to actually dissect the packets */
@@ -908,17 +908,15 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "PropSets");
         tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0]);
-        len = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size1_off);
-        proto_item_set_len(ti, len);
-        offset += len;
+        offset = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size1_off);
+        proto_item_set_end(ti, tvb, offset);
 
         offset = parse_padding(tvb, offset, 8, pad_tree, "paddingExtPropset");
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "ExtPropset");
         tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0 /*XXX*/]);
-        len = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
-        proto_item_set_len(ti, len);
-        offset += len;
+        offset = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
+        proto_item_set_end(ti, tvb, offset);
 
         offset = parse_padding(tvb, offset, 8, pad_tree, NULL);
         DISSECTOR_ASSERT(offset == (int)tvb_length(tvb));
