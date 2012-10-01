@@ -116,3 +116,56 @@ struct CBaseStorageVariant {
 
 	struct vtype *type;
 };
+
+/*****************************************************/
+
+
+enum rType {
+	RTNone = 0,
+	RTAnd,
+	RTOr,
+	RTNot,
+	RTContent,
+	RTProperty,
+	RTProximity,
+	RTVector,
+	RTNatLanguage,
+	RTScope,
+	RTCoerce_Add,
+	RTCoerce_Multiply,
+	RTCoerce_Absolute,
+	RTProb,
+	RTFeedback,
+	RTReldoc,
+	RTReuseWhere = 0x11,
+	RTInternalProp = 0x00fffffa,
+	RTPhrase = 0x00fffffd,
+};
+
+
+struct CRestriction;
+
+/* 2.2.1.6*/
+struct CNodeRestriction {
+	guint32 cNode;
+	struct CRestriction *paNode;
+};
+
+/* 2.2.1.17 */
+struct CRestriction {
+	enum rType ulType;
+	guint32 Weight;
+	union {
+		//	void RTNone;
+		struct CNodeRestriction *RTAnd, *RTOr, *RTProximity, *RTPhrase;
+		struct CRestriction *RTNot;
+		struct CContentRestriction *RTContent;
+		struct CPropertyRestriction *RTProperty;
+		struct CVectorRestriction *RTVector;
+		struct CNatLanguageRestriction *RTNatLanguage;
+		struct CScopeRestriction *RTScope;
+		struct CReuseWhere *RTReuseWhere;
+		struct CInternalPropertyRestriction *RTInternalProp;
+		struct CCoercionRestriction *RTCoerce_Add, *RTCoerce_Multiply, *RTCoerce_Absolute;
+	} u;
+};
