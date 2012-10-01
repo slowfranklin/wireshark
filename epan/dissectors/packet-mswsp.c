@@ -760,7 +760,6 @@ static struct {
 
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    const int offset_in = offset;
     int i, num;
     e_guid_t guid;
     const char *guid_str;
@@ -802,7 +801,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         offset = parse_CDbProp(tvb, offset, tr, pad_tree);
         proto_item_set_end(ti, tvb, offset);
     }
-    return offset - offset_in;
+    return offset;
 }
 
 static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree, int size_offset)
@@ -824,9 +823,8 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "PropertySet[%d]", i);
         proto_tree *tr = proto_item_add_subtree(ti, ett_mswsp_propset[ett_idx.propset++]);
         DISSECTOR_ASSERT(ett_idx.propset <= array_length(ett_mswsp_propset));
-        len = parse_CDbPropSet(tvb, offset, tr, pad_tree);
-        proto_item_set_len(ti, len);
-        offset += len;
+        offset = parse_CDbPropSet(tvb, offset, tr, pad_tree);
+        proto_item_set_end(ti, tvb, offset);
     }
 
     DISSECTOR_ASSERT(offset - offset_in == (int)size);
