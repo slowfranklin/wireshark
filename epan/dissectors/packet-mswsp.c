@@ -124,8 +124,6 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
 static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                struct CFullPropSpec *v)
 {
-    int len;
-    const int offset_in = offset;
     static const value_string KIND[] = {
         {0, "PRSPEC_LPWSTR"},
         {1, "PRSPEC_PROPID"},
@@ -151,7 +149,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
     offset += 4;
 
     if (v->kind == PRSPEC_LPWSTR) {
-        len = v->u.propid;
+        int len = v->u.propid;
         v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
         proto_item_append_text(tree_item, " \"%s\"", v->u.name);
@@ -161,7 +159,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
     } else {
         proto_item_append_text(tree_item, "<INVALID>");
     }
-    return offset - offset_in;
+    return offset;
 }
 
 
@@ -180,8 +178,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "Property");
     tr = proto_item_add_subtree(ti, ett_mswsp_property_restriction);
-    len = parse_CFullPropSpec(tvb, offset, tr, pad_tree, &v->property);
-    offset += len;
+    offset = parse_CFullPropSpec(tvb, offset, tr, pad_tree, &v->property);
     proto_item_set_end(ti, tvb, offset);
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "prval");
