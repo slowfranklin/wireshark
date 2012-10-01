@@ -91,6 +91,7 @@ static gint ett_mswsp_restriction = -1;
 static gint ett_mswsp_restriction_node = -1;
 static gint ett_mswsp_property_restriction = -1;
 static gint ett_mswsp_property_restriction_val = -1;
+static gint ett_CRestrictionArray = -1;
 
 struct {
     guint propset_array;
@@ -862,7 +863,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
     ZERO_STRUCT(ett_idx);
 
-    ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, 17, -1, ENC_NA);
+    ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
     tree = proto_item_add_subtree(ti, ett_mswsp_msg);
     proto_item_set_text(ti, "CPMConnect%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "Connect");
@@ -942,7 +943,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         DISSECTOR_ASSERT((offset % 8) == 0);
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "ExtPropset");
-        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[1]);
+        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0 /*XXX*/]);
         len = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
         proto_item_set_len(ti, len);
         offset += len;
@@ -965,11 +966,18 @@ static int dissect_CPMDisconnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
     return tvb_length(tvb);
 }
 
-static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
     gint offset = 16;
+    proto_item *ti;
+    proto_tree *tree;
 
+    ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
+    tree = proto_item_add_subtree(ti, ett_mswsp_msg);
+
+    proto_item_set_text(ti, "CPMCreateQuery%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "CreateQuery");
+
     if (in) {
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         proto_tree *pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
@@ -1012,7 +1020,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                     proto_tree *tr;
                     struct CRestriction r;
                     proto_item *ti2 = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionArray[%d]", i);
-                    proto_tree *tr2 = proto_item_get_parent(ti2);
+                    proto_tree *tr2 = proto_item_add_subtree(ti2, ett_CRestrictionArray);
 
                     len = parse_CRestriction(tvb, offset, tr2, pad_tree, &r);
                     offset += len;
@@ -1405,6 +1413,7 @@ proto_register_mswsp(void)
             &ett_mswsp_restriction_node,
             &ett_mswsp_property_restriction,
             &ett_mswsp_property_restriction_val,
+            &ett_CRestrictionArray
 	};
 
 /* Register the protocol name and description */
