@@ -104,12 +104,13 @@ struct {
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *text)
 {
-    int padding = 0;
     if (offset % alignment) {
-        padding = alignment - (offset % alignment);
+        const int padding = alignment - (offset % alignment);
         proto_tree_add_text(pad_tree, tvb, offset, padding, "%s (%d)", text ? text : "???", padding);
+        offset += padding;
     }
-    return padding;
+    DISSECTOR_ASSERT((offset % alignment) == 0);
+    return offset;
 }
 
 /*****************************************************************************************/
@@ -133,8 +134,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
     char *guid_str;
     proto_item *tree_item = proto_tree_get_parent(tree);
 
-    len = parse_padding(tvb, offset, 8, pad_tree, "paddingPropSet");
-    offset += len;
+    offset = parse_padding(tvb, offset, 8, pad_tree, "paddingPropSet");
 
     tvb_get_letohguid(tvb, offset, &v->guid);
     guid_str =  guid_to_str(&v->guid);
@@ -151,6 +151,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
     offset += 4;
 
     if (v->kind == PRSPEC_LPWSTR) {
+        len = v->u.propid;
         v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
         proto_item_append_text(tree_item, " \"%s\"", v->u.name);
@@ -189,8 +190,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
     offset += len;
     proto_item_set_end(ti, tvb, offset);
 
-    len = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
-    offset += len;
+    offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
 
     v->lcid = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
@@ -271,8 +271,7 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, p
         offset += len;
         proto_item_set_end(ti, tvb, offset);
 
-        len = parse_padding(tvb, offset, 4, pad_tree, "paNode"); /*at begin or end of loop ????*/
-        offset += len;
+        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode"); /*at begin or end of loop ????*/
     }
     return offset - offset_in;
 }
@@ -690,9 +689,7 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
     proto_tree_add_text(tree, tvb, offset, 4, "eKind: %s (%u)", eKind < 2 ? KIND[eKind] : "???", eKind);
     offset += 4;
 
-    len = parse_padding(tvb, offset, 8, pad_tree, "paddingGuidAlign");
-    DISSECTOR_ASSERT(len <= 8);
-    offset += len;
+    offset = parse_padding(tvb, offset, 8, pad_tree, "paddingGuidAlign");
 
     tvb_get_letohguid(tvb, offset, &guid);
     guid_str =  guid_to_str(&guid);
@@ -800,8 +797,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
          proto_item_append_text(tree_item, " {%s}", guid_str);
     }
 
-    len = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
-    offset += len;
+    offset = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
 
     num = tvb_get_letoh24(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "cProperties: %d", num);
@@ -812,8 +808,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         proto_item *ti;
         proto_tree *tr;
 
-        len = parse_padding(tvb, offset, 4, pad_tree, "aProp");
-        offset += len;
+        offset = parse_padding(tvb, offset, 4, pad_tree, "aProp");
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "aProp[%d]", i);
         tr = proto_item_add_subtree(ti, ett_mswsp_prop[ett_idx.prop++]); //???
@@ -904,17 +899,13 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         blob_size1_off = offset;
         offset += 4;
 
-        len = parse_padding(tvb, offset, 8, pad_tree, "_paddingcbBlob2");
-        offset += len;
-        DISSECTOR_ASSERT(len == 4);
+        offset = parse_padding(tvb, offset, 8, pad_tree, "_paddingcbBlob2");
 
         /* _cbBlob2 */
         blob_size2_off = offset;
         offset += 4;
 
-        len = parse_padding(tvb, offset, 16, pad_tree, "_padding");
-        offset += len;
-        DISSECTOR_ASSERT(len == 12);
+        offset = parse_padding(tvb, offset, 16, pad_tree, "_padding");
 
         len = tvb_unicode_strsize(tvb, offset);
         ti = proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_MachineName, tvb,
@@ -930,9 +921,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
-        len = parse_padding(tvb, offset, 8, pad_tree, "_paddingcPropSets");
-        offset += len;
-        DISSECTOR_ASSERT((offset % 8) == 0);
+        offset = parse_padding(tvb, offset, 8, pad_tree, "_paddingcPropSets");
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "PropSets");
         tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0]);
@@ -940,9 +929,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         proto_item_set_len(ti, len);
         offset += len;
 
-        len = parse_padding(tvb, offset, 8, pad_tree, "paddingExtPropset");
-        offset += len;
-        DISSECTOR_ASSERT((offset % 8) == 0);
+        offset = parse_padding(tvb, offset, 8, pad_tree, "paddingExtPropset");
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "ExtPropset");
         tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0 /*XXX*/]);
@@ -950,8 +937,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         proto_item_set_len(ti, len);
         offset += len;
 
-        len = parse_padding(tvb, offset, 8, pad_tree, NULL);
-        offset += len;
+        offset = parse_padding(tvb, offset, 8, pad_tree, NULL);
         DISSECTOR_ASSERT(offset == (int)tvb_length(tvb));
 
         /* make "Padding" the last item */
@@ -996,8 +982,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
         if (CColumnSetPresent) {
             guint32 count;
-            len = parse_padding(tvb, offset, 4, pad_tree, "paddingCColumnSetPresent");
-            offset += len;
+            offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCColumnSetPresent");
 
             count = tvb_get_letohl(tvb, offset);
             len = 4 + 4*count;
@@ -1016,8 +1001,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
             ti = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionSet: count %d", count);
             offset += 2;
             if (present) {
-                len = parse_padding(tvb, offset, 4, pad_tree, "paddingCRestrictionPresent");
-                offset += len;
+                offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCRestrictionPresent");
+
                 for (i=0; i<count; i++) {
                     proto_tree *tr;
                     struct CRestriction r;
