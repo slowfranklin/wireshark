@@ -84,7 +84,6 @@ static gint ett_mswsp_pad = -1;
 static gint ett_mswsp_propset_array[2];
 static gint ett_mswsp_propset[8];
 static gint ett_mswsp_prop[64];
-static gint ett_mswsp_prop_colid[64];
 
 static gint ett_mswsp_restriction = -1;
 static gint ett_mswsp_restriction_node = -1;
@@ -94,7 +93,7 @@ static gint ett_CRestrictionArray = -1;
 static gint ett_CBaseStorageVariant = -1;
 static gint ett_CBaseStorageVariant_Vector = -1;
 static gint ett_CBaseStorageVariant_Array = -1;
-
+static gint ett_CDbColId = -1;
 
 struct {
     guint propset_array;
@@ -666,14 +665,16 @@ enum {
     DBKIND_GUID_PROPID = 1
 };
 
-static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree, const char *text)
 {
     int len;
     guint32 eKind, ulId;
     e_guid_t guid;
     const char *guid_str;
     static const char *KIND[] = {"DBKIND_GUID_NAME", "DBKIND_GUID_PROPID"};
-    proto_item *tree_item = proto_tree_get_parent(tree);
+
+    proto_item *tree_item = proto_tree_add_text(parent_tree, tvb, offset, 0, "%s", text);
+    proto_tree *tree = proto_item_add_subtree(tree_item, ett_CDbColId);
 
     eKind = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "eKind: %s (%u)", eKind < 2 ? KIND[eKind] : "???", eKind);
@@ -684,7 +685,6 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
     tvb_get_letohguid(tvb, offset, &guid);
     guid_str =  guid_to_str(&guid);
     proto_tree_add_text(tree, tvb, offset, 16, "GUID: %s", guid_str);
-//    proto_tree_add_guid(tree, , tvb, offset, 16, &guid);
     proto_item_append_text(tree_item, ": {%s}", guid_str);
     offset += 16;
 
@@ -705,6 +705,8 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
         proto_item_append_text(tree_item, "<INVALID>");
     }
 
+    proto_item_set_end(tree_item, tvb, offset);
+
     return offset;
 }
 
@@ -712,8 +714,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
 {
     guint32 id, opt, status;
     struct CBaseStorageVariant value;
-    proto_item *ti, *tree_item = proto_tree_get_parent(tree);
-    proto_tree *tr;
+    proto_item *tree_item = proto_tree_get_parent(tree);
     char *str;
 
     id = tvb_get_letoh24(tvb, offset);
@@ -729,11 +730,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     proto_tree_add_text(tree, tvb, offset, 4, "DBPROPSTATUS: %08x", status);
     offset += 4;
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "colid");
-    tr = proto_item_add_subtree(ti, ett_mswsp_prop_colid[ett_idx.prop_colid++]); //???
-    DISSECTOR_ASSERT(ett_idx.prop_colid <= array_length(ett_mswsp_prop_colid));
-    offset = parse_CDbColId(tvb, offset, tr, pad_tree);
-    proto_item_set_end(ti, tvb, offset);
+    offset = parse_CDbColId(tvb, offset, tree, pad_tree, "colid");
 
     offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &value, "vValue");
 
@@ -1379,6 +1376,7 @@ proto_register_mswsp(void)
             &ett_CBaseStorageVariant,
             &ett_CBaseStorageVariant_Vector,
             &ett_CBaseStorageVariant_Array,
+            &ett_CDbColId
 	};
 
 /* Register the protocol name and description */
@@ -1391,9 +1389,6 @@ proto_register_mswsp(void)
         register_ett_array(ett_mswsp_propset_array, array_length(ett_mswsp_propset_array));
         register_ett_array(ett_mswsp_propset, array_length(ett_mswsp_propset));
         register_ett_array(ett_mswsp_prop, array_length(ett_mswsp_prop));
-        register_ett_array(ett_mswsp_prop_colid, array_length(ett_mswsp_prop_colid));
-
-
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
 /* (Registration of a prefs callback is not required if there are no     */
