@@ -85,13 +85,16 @@ static gint ett_mswsp_propset_array[2];
 static gint ett_mswsp_propset[8];
 static gint ett_mswsp_prop[64];
 static gint ett_mswsp_prop_colid[64];
-static gint ett_mswsp_prop_value[64];
-static gint ett_mswsp_prop_value_val[64];
+
 static gint ett_mswsp_restriction = -1;
 static gint ett_mswsp_restriction_node = -1;
 static gint ett_mswsp_property_restriction = -1;
 static gint ett_mswsp_property_restriction_val = -1;
 static gint ett_CRestrictionArray = -1;
+static gint ett_CBaseStorageVariant = -1;
+static gint ett_CBaseStorageVariant_Vector = -1;
+static gint ett_CBaseStorageVariant_Array = -1;
+
 
 struct {
     guint propset_array;
@@ -116,8 +119,8 @@ static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *p
 /*****************************************************************************************/
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                   struct CNodeRestriction *v);
-static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                                     struct CBaseStorageVariant *value);
+static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                                     struct CBaseStorageVariant *value, const char *text);
 
 
 
@@ -179,10 +182,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
     offset = parse_CFullPropSpec(tvb, offset, tr, pad_tree, &v->property);
     proto_item_set_end(ti, tvb, offset);
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "prval");
-    tr = proto_item_add_subtree(ti, ett_mswsp_property_restriction_val);
-    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &v->prval);
-    proto_item_set_end(ti, tvb, offset);
+    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &v->prval, "prval");
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
 
@@ -566,18 +566,23 @@ static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
     return strbuf->str;
 }
 
-static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree _U_,
-                                     struct CBaseStorageVariant *value)
+static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree _U_,
+                                     struct CBaseStorageVariant *value, const char *text)
 {
     int i, len;
-    proto_item *ti;
-    proto_tree *tr;
+    proto_item *ti, *ti_type;
+    proto_tree *tree, *tr;
     enum vType baseType, highType;
 
     ZERO_STRUCT(*value);
 
+    ti = proto_tree_add_text(parent_tree, tvb, offset, 0, "%s", text);
+    tree = proto_item_add_subtree(ti, ett_CBaseStorageVariant);
+
     value->vType = tvb_get_letohs(tvb, offset);
-    ti = proto_tree_add_text(tree, tvb, offset, 2, "vType");
+    value->type = vType_get_type(value->vType);
+
+    ti_type = proto_tree_add_text(tree, tvb, offset, 2, "vType: %s", value->type->str);
     offset += 2;
 
     value->vData1 = tvb_get_guint8(tvb, offset);
@@ -591,16 +596,11 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
     baseType = value->vType & 0x00FF;
     highType = value->vType & 0xFF00;
 
-    value->type = vType_get_type(value->vType);
     if (value->type == NULL) {
         goto not_supported;
     }
 
-    proto_item_append_text(ti, ": %s", value->type->str);
-
     ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
-    tr = proto_item_add_subtree(ti, ett_mswsp_prop_value_val[ett_idx.prop_value_val++]);
-    DISSECTOR_ASSERT(ett_idx.prop_value_val <= array_length(ett_mswsp_prop_value_val));
 
     switch (highType) {
     case VT_EMPTY:
@@ -608,7 +608,9 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
         offset += len;
         break;
     case VT_VECTOR:
-        proto_item_append_text(ti, "|VT_VECTOR");
+        proto_item_append_text(ti_type, "|VT_VECTOR");
+        tr = proto_item_add_subtree(ti, ett_CBaseStorageVariant_Vector);
+
         len = vvalue_tvb_vector(tvb, offset, &value->vValue.vt_vector, value->type);
         proto_tree_add_text(tr, tvb, offset, 4, "num: %d", value->vValue.vt_vector.len);
         offset += len;
@@ -618,7 +620,8 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
         guint32 cbElements, cElements, lLbound;
         int num = 1;
 
-        proto_item_append_text(ti, "|VT_ARRAY");
+        proto_item_append_text(ti_type, "|VT_ARRAY");
+        tr = proto_item_add_subtree(ti, ett_CBaseStorageVariant_Array);
 
         cDims = tvb_get_letohs(tvb, offset);
         proto_tree_add_text(tr, tvb, offset, 2, "cDims: %d", cDims);
@@ -644,7 +647,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
         break;
     }
     default:
-        proto_item_append_text(ti, "|0x%x", highType);
+        proto_item_append_text(ti_type, "|0x%x", highType);
     }
     proto_item_set_end(ti, tvb, offset);
 
@@ -735,14 +738,10 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     proto_item_set_len(ti, len);
     offset += len;
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
-    tr = proto_item_add_subtree(ti, ett_mswsp_prop_value[ett_idx.prop_value++]); //???
-    DISSECTOR_ASSERT(ett_idx.prop_value <= array_length(ett_mswsp_prop_value));
-    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &value);
-    proto_item_set_end(ti, tvb, offset);
+    offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &value, "vValue");
+
     str = str_CBaseStorageVariant(&value);
     proto_item_append_text(tree_item, " %s", str);
-    proto_item_append_text(ti, " %s", str);
 
     return offset;
 }
@@ -1379,7 +1378,10 @@ proto_register_mswsp(void)
             &ett_mswsp_restriction_node,
             &ett_mswsp_property_restriction,
             &ett_mswsp_property_restriction_val,
-            &ett_CRestrictionArray
+            &ett_CRestrictionArray,
+            &ett_CBaseStorageVariant,
+            &ett_CBaseStorageVariant_Vector,
+            &ett_CBaseStorageVariant_Array,
 	};
 
 /* Register the protocol name and description */
@@ -1393,7 +1395,7 @@ proto_register_mswsp(void)
         register_ett_array(ett_mswsp_propset, array_length(ett_mswsp_propset));
         register_ett_array(ett_mswsp_prop, array_length(ett_mswsp_prop));
         register_ett_array(ett_mswsp_prop_colid, array_length(ett_mswsp_prop_colid));
-        register_ett_array(ett_mswsp_prop_value, array_length(ett_mswsp_prop_value));
+
 
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
