@@ -167,7 +167,6 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
 static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                       struct CPropertyRestriction *v)
 {
-    const int offset_in = offset;
     int len;
     proto_tree *tr;
     proto_item *ti;
@@ -193,13 +192,12 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
     proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
     offset += 4;
 
-    return offset - offset_in;
+    return offset;
 }
 
 static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                               struct CRestriction *v)
 {
-    const int offset_in = offset;
     proto_tree *tr;
     proto_item *ti;
     int len;
@@ -224,35 +222,32 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto
     case RTPhrase:
     {
         v->u.RTAnd = ep_alloc(sizeof(struct CNodeRestriction)); //XXX
-        len = parse_CNodeRestriction(tvb, offset, tr, pad_tree, v->u.RTAnd);
+        offset = parse_CNodeRestriction(tvb, offset, tr, pad_tree, v->u.RTAnd);
     }
     break;
     case RTNot:
     {
         v->u.RTNot = ep_alloc(sizeof(struct CRestriction)); //XXX
-        len = parse_CRestriction(tvb, offset, tr, pad_tree, v->u.RTNot);
+        offset = parse_CRestriction(tvb, offset, tr, pad_tree, v->u.RTNot);
     }
     case RTProperty:
     {
         v->u.RTProperty = ep_alloc(sizeof(struct CPropertyRestriction)); //XXX
-        len = parse_CPropertyRestriction(tvb, offset, tr, pad_tree, v->u.RTProperty);
+        offset = parse_CPropertyRestriction(tvb, offset, tr, pad_tree, v->u.RTProperty);
     }
     break;
     default:
         proto_item_append_text(ti, " Not supported!");
     }
-    offset += len;
     proto_item_set_end(ti, tvb, offset);
 
-    return offset - offset_in;
+    return offset;
 }
 
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                   struct CNodeRestriction *v)
 {
-    const int offset_in = offset;
     proto_item *ti;
-    int len;
     unsigned i;
 
     v->cNode = tvb_get_letohl(tvb, offset);
@@ -263,13 +258,12 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, p
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "paNode[%u]", i);
         proto_tree *tr = proto_item_add_subtree(ti, ett_mswsp_restriction_node);
         ZERO_STRUCT(r);
-        len = parse_CRestriction(tvb, offset, tr, pad_tree, &r);
-        offset += len;
+        offset = parse_CRestriction(tvb, offset, tr, pad_tree, &r);
         proto_item_set_end(ti, tvb, offset);
 
         offset = parse_padding(tvb, offset, 4, pad_tree, "paNode"); /*at begin or end of loop ????*/
     }
-    return offset - offset_in;
+    return offset;
 }
 
 
@@ -1004,8 +998,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                     proto_item *ti2 = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionArray[%d]", i);
                     proto_tree *tr2 = proto_item_add_subtree(ti2, ett_CRestrictionArray);
 
-                    len = parse_CRestriction(tvb, offset, tr2, pad_tree, &r);
-                    offset += len;
+                    offset = parse_CRestriction(tvb, offset, tr2, pad_tree, &r);
                 }
             }
             proto_item_set_end(ti, tvb, offset);
