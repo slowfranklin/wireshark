@@ -145,7 +145,44 @@ enum rType {
 
 struct CRestriction;
 
-/* 2.2.1.6*/
+enum relop {
+	PRLT = 0,
+	PRLE,
+	PRGT,
+	PRGE,
+	PREQ,
+	PRNE,
+	PRRE,
+	PRAllBits,
+	PRSomeBits,
+	PRAll = 0x100,
+	PRSome = 0x200,
+};
+
+enum PRSPEC_Kind {
+	PRSPEC_LPWSTR = 0,
+	PRSPEC_PROPID,
+};
+
+/* 2.2.1.2 */
+struct CFullPropSpec {
+	e_guid_t guid;
+	enum PRSPEC_Kind kind;
+	union {
+		guint32 propid;
+		char *name;
+	} u;
+};
+
+/* 2.2.1.7 */
+struct CPropertyRestriction {
+	enum relop relop;
+	struct CFullPropSpec property;
+	struct CBaseStorageVariant prval;
+	guint32 lcid;
+};
+
+/* 2.2.1.6 */
 struct CNodeRestriction {
 	guint32 cNode;
 	struct CRestriction *paNode;
