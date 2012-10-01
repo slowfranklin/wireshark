@@ -662,6 +662,8 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
     }
     proto_item_set_end(ti, tvb, offset);
 
+    proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value));
+
  //done:
     return offset - offset_in;
 not_supported:
