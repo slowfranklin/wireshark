@@ -167,7 +167,6 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
 static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                       struct CPropertyRestriction *v)
 {
-    int len;
     proto_tree *tr;
     proto_item *ti;
 
@@ -182,8 +181,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "prval");
     tr = proto_item_add_subtree(ti, ett_mswsp_property_restriction_val);
-    len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &v->prval);
-    offset += len;
+    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &v->prval);
     proto_item_set_end(ti, tvb, offset);
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
@@ -571,7 +569,6 @@ static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree _U_,
                                      struct CBaseStorageVariant *value)
 {
-    const int offset_in = offset;
     int i, len;
     proto_item *ti;
     proto_tree *tr;
@@ -653,11 +650,12 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree
 
     proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value));
 
- //done:
-    return offset - offset_in;
+    goto done;
+
 not_supported:
         proto_item_append_text(ti, ": sorry, vType %02x not handled yet!", (unsigned)value->vType);
-        return offset - offset_in;
+done:
+    return offset;
 }
 
 enum {
@@ -741,12 +739,11 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
     tr = proto_item_add_subtree(ti, ett_mswsp_prop_value[ett_idx.prop_value++]); //???
     DISSECTOR_ASSERT(ett_idx.prop_value <= array_length(ett_mswsp_prop_value));
-    len = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &value);
-    proto_item_set_len(ti, len);
+    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &value);
+    proto_item_set_end(ti, tvb, offset);
     str = str_CBaseStorageVariant(&value);
     proto_item_append_text(tree_item, " %s", str);
     proto_item_append_text(ti, " %s", str);
-    offset += len;
 
     return offset - offset_in;
 }
