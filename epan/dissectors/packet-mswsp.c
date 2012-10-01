@@ -252,7 +252,6 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, p
 {
     const int offset_in = offset;
     proto_item *ti;
-    proto_tree *tr;
     int len;
     unsigned i;
 
@@ -575,7 +574,7 @@ static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
     return strbuf->str;
 }
 
-static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
+static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree _U_,
                                      struct CBaseStorageVariant *value)
 {
     const int offset_in = offset;
@@ -1001,7 +1000,6 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                 offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCRestrictionPresent");
 
                 for (i=0; i<count; i++) {
-                    proto_tree *tr;
                     struct CRestriction r;
                     proto_item *ti2 = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionArray[%d]", i);
                     proto_tree *tr2 = proto_item_add_subtree(ti2, ett_CRestrictionArray);
