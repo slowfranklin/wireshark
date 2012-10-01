@@ -668,7 +668,6 @@ enum {
 
 static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    const int offset_in = offset;
     int len;
     guint32 eKind, ulId;
     e_guid_t guid;
@@ -706,12 +705,11 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tre
         proto_item_append_text(tree_item, "<INVALID>");
     }
 
-    return offset - offset_in;
+    return offset;
 }
 
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
-    int len;
     guint32 id, opt, status;
     struct CBaseStorageVariant value;
     proto_item *ti, *tree_item = proto_tree_get_parent(tree);
@@ -734,9 +732,8 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
     ti = proto_tree_add_text(tree, tvb, offset, 0, "colid");
     tr = proto_item_add_subtree(ti, ett_mswsp_prop_colid[ett_idx.prop_colid++]); //???
     DISSECTOR_ASSERT(ett_idx.prop_colid <= array_length(ett_mswsp_prop_colid));
-    len = parse_CDbColId(tvb, offset, tr, pad_tree);
-    proto_item_set_len(ti, len);
-    offset += len;
+    offset = parse_CDbColId(tvb, offset, tr, pad_tree);
+    proto_item_set_end(ti, tvb, offset);
 
     offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &value, "vValue");
 
