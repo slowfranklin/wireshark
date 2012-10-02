@@ -827,7 +827,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
 
-    num = tvb_get_letoh24(tvb, offset);
+    num = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "cProperties: %d", num);
     offset += 4;
     proto_item_append_text(tree_item, " Size: %d", num);
@@ -845,11 +845,11 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
     guint32 size, num;
     int i;
 
-    size = tvb_get_letoh24(tvb, size_offset);
+    size = tvb_get_letohl(tvb, size_offset);
     proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
                         size_offset, 4, ENC_LITTLE_ENDIAN);
 
-    num = tvb_get_letoh24(tvb, offset);
+    num = tvb_get_letohl(tvb, offset);
     proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_PropSets_num, tvb,
                         offset, 4, ENC_LITTLE_ENDIAN);
     offset += 4;
@@ -1178,7 +1178,7 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
         }
     }
 
-    hdr.msg = tvb_get_letoh24(tvb, 0);
+    hdr.msg = tvb_get_letohl(tvb, 0);
 
     switch(hdr.msg) {
     case 0xC8:
@@ -1248,8 +1248,8 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
         return 0;
     }
 
-    hdr.status = tvb_get_letoh24(tvb, 4);
-    hdr.checksum = tvb_get_letoh24(tvb, 8);
+    hdr.status = tvb_get_letohl(tvb, 4);
+    hdr.checksum = tvb_get_letohl(tvb, 8);
 
     col_set_str(pinfo->cinfo, COL_PROTOCOL, "MS-WSP");
 /*    col_clear(pinfo->cinfo, COL_INFO); */
