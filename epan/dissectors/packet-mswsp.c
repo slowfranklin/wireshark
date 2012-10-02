@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <glib.h>
 
@@ -557,7 +558,7 @@ static struct vtype *vType_get_type(enum vType t) {
     return NULL;
 }
 
-static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
+static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value, gboolean print_type)
 {
 
     emem_strbuf_t *strbuf = ep_strbuf_new(NULL);
@@ -569,13 +570,14 @@ static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value)
         return "<??""?>";
     }
 
-    ep_strbuf_append(strbuf, value->type->str);
+    if (print_type) {
+        ep_strbuf_append(strbuf, value->type->str);
 
-    if (value->vType & 0xFF00) {
-        ep_strbuf_append_printf(strbuf, "[%d]", value->vValue.vt_vector.len);
+        if (value->vType & 0xFF00) {
+            ep_strbuf_append_printf(strbuf, "[%d]", value->vValue.vt_vector.len);
+        }
+        ep_strbuf_append(strbuf, ": ");
     }
-
-    ep_strbuf_append(strbuf, ": ");
 
     switch (value->vType & 0xFF00) {
     case 0:
@@ -679,7 +681,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
     }
     proto_item_set_end(ti, tvb, offset);
 
-    proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value));
+    proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value, false));
 
     goto done;
 
@@ -758,7 +760,7 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
 
     offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &value, "vValue");
 
-    str = str_CBaseStorageVariant(&value);
+    str = str_CBaseStorageVariant(&value, true);
     proto_item_append_text(tree_item, " %s", str);
 
     return offset;
