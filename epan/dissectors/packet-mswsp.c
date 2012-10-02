@@ -704,7 +704,6 @@ enum {
 
 static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree, const char *text)
 {
-    int len;
     guint32 eKind, ulId;
     e_guid_t guid;
     static const char *KIND[] = {"DBKIND_GUID_NAME", "DBKIND_GUID_PROPID"};
@@ -726,7 +725,7 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
 
     if (eKind == DBKIND_GUID_NAME) {
         char *name;
-        len = ulId; //*2 ???
+        int len = ulId; //*2 ???
         name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "vString: \"%s\"", name);
         proto_item_append_text(tree_item, " \"%s\"", name);
