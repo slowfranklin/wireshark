@@ -780,11 +780,13 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pro
     return offset;
 }
 
-static struct {
+struct GuidPropertySet {
     e_guid_t guid;
     const char *def;
     const char *desc;
-} GuidPropertySet[] = {
+};
+
+static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework"},
     {{0xa7ac77ed, 0xf8d7, 0x11ce, {0xa7, 0x98, 0x00, 0x20, 0xf8, 0x00, 0x80, 0x25}},
@@ -793,24 +795,32 @@ static struct {
      "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core"},
 };
 
+static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
+{
+    unsigned i;
+    for (i=0; i<array_length(GuidPropertySet); i++) {
+        if (guid_cmp(&GuidPropertySet[i].guid, guid) == 0) {
+            return &GuidPropertySet[i];
+        }
+    }
+    return NULL;
+}
 
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
 {
     int i, num;
     e_guid_t guid;
+    struct GuidPropertySet *propset;
     proto_item *tree_item = proto_tree_get_parent(tree);
 
     offset = parse_guid(tvb, offset, tree, &guid, "guidPropertySet");
 
-    for (i=0; (unsigned)i<array_length(GuidPropertySet); i++) {
-        if (guid_cmp(&GuidPropertySet[i].guid, &guid) == 0) {
-            proto_item_append_text(tree_item, " \"%s\" (%s)",
-                                   GuidPropertySet[i].desc,
-                                   GuidPropertySet[i].def);
-            break;
-        }
-    }
-    if (i==array_length(GuidPropertySet)) {
+    propset = GuidPropertySet_find_guid(&guid);
+
+    if (propset) {
+        proto_item_append_text(tree_item, " \"%s\" (%s)",
+                               propset->desc, propset->def);
+    } else {
         const char *guid_str = guid_to_str(&guid);
         proto_item_append_text(tree_item, " {%s}", guid_str);
     }
