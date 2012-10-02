@@ -1360,17 +1360,6 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 }
 
 
-static void register_ett_array(gint arr[], int num)
-{
-    int i;
-    gint *ett[num];
-    for (i=0; i<num; i++) {
-        arr[i] = -1;
-        ett[i] = &arr[i];
-    }
-    proto_register_subtree_array(ett, num);
-}
-
 /* Register the protocol with Wireshark */
 
 /* this format is require because a script is used to build the C function
