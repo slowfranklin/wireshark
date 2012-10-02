@@ -97,15 +97,6 @@ static gint ett_CDbProp = -1;
 static gint ett_CDbPropSet = -1;
 static gint ett_CDbPropSet_Array = -1;
 
-struct {
-    guint propset_array;
-    guint propset;
-    guint prop;
-    guint prop_colid;
-    guint prop_value;
-    guint prop_value_val;
-} ett_idx;
-
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
     if (offset % alignment) {
@@ -946,8 +937,6 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
     gint offset = 16;
     guint len;
     guint32 version;
-
-    ZERO_STRUCT(ett_idx);
 
     ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
     tree = proto_item_add_subtree(ti, ett_mswsp_msg);
