@@ -94,6 +94,7 @@ static gint ett_CBaseStorageVariant = -1;
 static gint ett_CBaseStorageVariant_Vector = -1;
 static gint ett_CBaseStorageVariant_Array = -1;
 static gint ett_CDbColId = -1;
+static gint ett_GUID = -1;
 
 struct {
     guint propset_array;
@@ -115,6 +116,35 @@ static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *p
     return offset;
 }
 
+static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *guid, const char *text)
+{
+    const char *guid_str, *name, *bytes;
+    proto_tree *tr;
+    proto_item *ti;
+    tvb_get_letohguid(tvb, offset, guid);
+    guid_str =  guid_to_str(guid);
+    name = guids_get_guid_name(guid);
+
+    ti = proto_tree_add_text(tree, tvb, offset, 16, "%s: %s {%s}", text, name ? name : "", guid_str);
+    tr = proto_item_add_subtree(ti, ett_GUID);
+
+    proto_tree_add_text(tr, tvb, offset, 4, "time-low: 0x%08x", guid->data1);
+    offset += 4;
+    proto_tree_add_text(tr, tvb, offset, 2, "time-mid: 0x%04x", guid->data2);
+    offset += 2;
+    proto_tree_add_text(tr, tvb, offset, 2, "time-high-and-version: 0x%04x", guid->data3);
+    offset += 2;
+    proto_tree_add_text(tr, tvb, offset, 1, "clock_seq_hi_and_reserved: 0x%02x", guid->data4[0]);
+    offset += 1;
+    proto_tree_add_text(tr, tvb, offset, 1, "clock_seq_low: 0x%02x", guid->data4[1]);
+    offset += 1;
+    bytes = bytestring_to_str(&guid->data4[2], 6, ':');
+    proto_tree_add_text(tr, tvb, offset, 6, "node: %s", bytes);
+    offset += 6;
+
+    return offset;
+}
+
 /*****************************************************************************************/
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                   struct CNodeRestriction *v);
@@ -131,16 +161,14 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
         {1, "PRSPEC_PROPID"},
         {0, NULL}
     };
-    char *guid_str;
+    const char *guid_str;
     proto_item *tree_item = proto_tree_get_parent(tree);
 
     offset = parse_padding(tvb, offset, 8, pad_tree, "paddingPropSet");
 
-    tvb_get_letohguid(tvb, offset, &v->guid);
-    guid_str =  guid_to_str(&v->guid);
-    proto_tree_add_text(tree, tvb, offset, 16, "GUID: %s", guid_str);
+    offset = parse_guid(tvb, offset, tree, &v->guid, "GUID");
+    guid_str =  guids_resolve_guid_to_str(&v->guid );
     proto_item_append_text(tree_item, " {%s}", guid_str);
-    offset += 16;
 
     v->kind = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulKind: %s ", val_to_str(v->kind, KIND, "(Unknown: 0x%x)"));
@@ -670,7 +698,6 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
     int len;
     guint32 eKind, ulId;
     e_guid_t guid;
-    const char *guid_str;
     static const char *KIND[] = {"DBKIND_GUID_NAME", "DBKIND_GUID_PROPID"};
 
     proto_item *tree_item = proto_tree_add_text(parent_tree, tvb, offset, 0, "%s", text);
@@ -682,11 +709,7 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
 
     offset = parse_padding(tvb, offset, 8, pad_tree, "paddingGuidAlign");
 
-    tvb_get_letohguid(tvb, offset, &guid);
-    guid_str =  guid_to_str(&guid);
-    proto_tree_add_text(tree, tvb, offset, 16, "GUID: %s", guid_str);
-    proto_item_append_text(tree_item, ": {%s}", guid_str);
-    offset += 16;
+    offset = parse_guid(tvb, offset, tree, &guid, "GUID");
 
     ulId = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulId: %d", ulId);
@@ -756,15 +779,14 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
     int i, num;
     e_guid_t guid;
     const char *guid_str;
-    proto_item *ti, *tree_item = proto_tree_get_parent(tree);
+    proto_item *tree_item = proto_tree_get_parent(tree);
 
-    tvb_get_letohguid(tvb, offset, &guid);
+    offset = parse_guid(tvb, offset, tree, &guid, "guidPropertySet");
     guid_str =  guid_to_str(&guid);
-    ti = proto_tree_add_text(tree, tvb, offset, 16, "guidPropertySet: %s", guid_str);
-    offset += 16;
+
     for (i=0; (unsigned)i<array_length(GuidPropertySet); i++) {
         if (strcasecmp(GuidPropertySet[i].guid, guid_str) == 0) {
-            proto_item_append_text(ti, " (%s)", GuidPropertySet[i].def);
+//            proto_item_append_text(ti, " (%s)", GuidPropertySet[i].def);
             proto_item_append_text(tree_item, " %s (%s)",
                                    GuidPropertySet[i].def,
                                    GuidPropertySet[i].desc);
@@ -1376,7 +1398,8 @@ proto_register_mswsp(void)
             &ett_CBaseStorageVariant,
             &ett_CBaseStorageVariant_Vector,
             &ett_CBaseStorageVariant_Array,
-            &ett_CDbColId
+            &ett_CDbColId,
+            &ett_GUID,
 	};
 
 /* Register the protocol name and description */
