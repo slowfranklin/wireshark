@@ -83,10 +83,7 @@ static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_msg = -1;
 static gint ett_mswsp_pad = -1;
 
-static gint ett_mswsp_restriction = -1;
-static gint ett_mswsp_restriction_node = -1;
 static gint ett_mswsp_property_restriction = -1;
-static gint ett_mswsp_property_restriction_val = -1;
 static gint ett_CRestrictionArray = -1;
 static gint ett_CBaseStorageVariant = -1;
 static gint ett_CBaseStorageVariant_Vector = -1;
@@ -96,6 +93,9 @@ static gint ett_GUID = -1;
 static gint ett_CDbProp = -1;
 static gint ett_CDbPropSet = -1;
 static gint ett_CDbPropSet_Array = -1;
+static gint ett_CRestriction = -1;
+static gint ett_CNodeRestriction = -1;
+static gint ett_CPropertyRestriction = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -146,7 +146,8 @@ static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *gui
 
 /*****************************************************************************************/
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                                  struct CNodeRestriction *v);
+                                  struct CNodeRestriction *v, const char* fmt, ...);
+
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
                                      struct CBaseStorageVariant *value, const char *text);
 
@@ -193,11 +194,20 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
 
 
 
-static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                                      struct CPropertyRestriction *v)
+static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                      proto_tree *pad_tree, struct CPropertyRestriction *v,
+                                      const char *fmt, ...)
 {
-    proto_tree *tr;
-    proto_item *ti;
+    proto_tree *tree, *tr;
+    proto_item *item, *ti;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CPropertyRestriction);
 
     v->relop = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "relop: 0x%04x", v->relop);
@@ -208,7 +218,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
     offset = parse_CFullPropSpec(tvb, offset, tr, pad_tree, &v->property);
     proto_item_set_end(ti, tvb, offset);
 
-    offset = parse_CBaseStorageVariant(tvb, offset, tr, pad_tree, &v->prval, "prval");
+    offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &v->prval, "prval");
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
 
@@ -216,15 +226,25 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *tre
     proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
     offset += 4;
 
+    proto_item_set_end(item, tvb, offset);
+
     return offset;
 }
 
-static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                              struct CRestriction *v)
+static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                              struct CRestriction *v, const char *fmt, ...)
 {
-    proto_tree *tr;
-    proto_item *ti;
-    int len;
+    proto_tree *tree;
+    proto_item *item, *ti;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CRestriction);
+
 
     v->ulType = tvb_get_letohl(tvb, offset);
     ti = proto_tree_add_text(tree, tvb, offset, 4, "ulType: 0x%.8x", v->ulType);
@@ -234,11 +254,8 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto
     ti = proto_tree_add_text(tree, tvb, offset, 4, "Weight: %u", v->ulType);
     offset += 4;
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "Restriction");
-    tr = proto_item_add_subtree(ti, ett_mswsp_restriction);
     switch(v->ulType) {
     case RTNone:
-        len = 0;
         break;
     case RTAnd:
     case RTOr:
@@ -246,47 +263,54 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto
     case RTPhrase:
     {
         v->u.RTAnd = ep_alloc(sizeof(struct CNodeRestriction)); //XXX
-        offset = parse_CNodeRestriction(tvb, offset, tr, pad_tree, v->u.RTAnd);
+        offset = parse_CNodeRestriction(tvb, offset, tree, pad_tree, v->u.RTAnd, "CNodeRestriction");
     }
     break;
     case RTNot:
     {
         v->u.RTNot = ep_alloc(sizeof(struct CRestriction)); //XXX
-        offset = parse_CRestriction(tvb, offset, tr, pad_tree, v->u.RTNot);
+        offset = parse_CRestriction(tvb, offset, tree, pad_tree, v->u.RTNot, "CRestriction");
     }
     case RTProperty:
     {
         v->u.RTProperty = ep_alloc(sizeof(struct CPropertyRestriction)); //XXX
-        offset = parse_CPropertyRestriction(tvb, offset, tr, pad_tree, v->u.RTProperty);
+        offset = parse_CPropertyRestriction(tvb, offset, tree, pad_tree, v->u.RTProperty, "CPropertyRestriction");
     }
     break;
     default:
-        proto_item_append_text(ti, " Not supported!");
+        proto_item_append_text(item, " Not supported!");
     }
-    proto_item_set_end(ti, tvb, offset);
 
+    proto_item_set_end(item, tvb, offset);
     return offset;
 }
 
-static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                                  struct CNodeRestriction *v)
+static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                  proto_tree *pad_tree, struct CNodeRestriction *v,
+                                  const char *fmt, ...)
 {
-    proto_item *ti;
+    proto_tree *tree;
+    proto_item *item, *ti;
     unsigned i;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CNodeRestriction);
 
     v->cNode = tvb_get_letohl(tvb, offset);
     ti = proto_tree_add_text(tree, tvb, offset, 4, "cNode: %u", v->cNode);
     offset += 4;
     for (i=0; i<v->cNode; i++) {
         struct CRestriction r;
-        proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "paNode[%u]", i);
-        proto_tree *tr = proto_item_add_subtree(ti, ett_mswsp_restriction_node);
         ZERO_STRUCT(r);
-        offset = parse_CRestriction(tvb, offset, tr, pad_tree, &r);
-        proto_item_set_end(ti, tvb, offset);
+        offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "paNode[%u]", i);
 
         offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
     }
+
+    proto_item_set_end(item, tvb, offset);
     return offset;
 }
 
@@ -1076,10 +1100,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
                 for (i=0; i<count; i++) {
                     struct CRestriction r;
-                    proto_item *ti2 = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionArray[%d]", i);
-                    proto_tree *tr2 = proto_item_add_subtree(ti2, ett_CRestrictionArray);
-
-                    offset = parse_CRestriction(tvb, offset, tr2, pad_tree, &r);
+                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionArray[%d]", i);
                 }
             }
             proto_item_set_end(ti, tvb, offset);
@@ -1465,10 +1486,7 @@ proto_register_mswsp(void)
             &ett_mswsp_hdr,
             &ett_mswsp_msg,
             &ett_mswsp_pad,
-            &ett_mswsp_restriction,
-            &ett_mswsp_restriction_node,
             &ett_mswsp_property_restriction,
-            &ett_mswsp_property_restriction_val,
             &ett_CRestrictionArray,
             &ett_CBaseStorageVariant,
             &ett_CBaseStorageVariant_Vector,
@@ -1478,6 +1496,9 @@ proto_register_mswsp(void)
             &ett_CDbProp,
             &ett_CDbPropSet,
             &ett_CDbPropSet_Array,
+            &ett_CRestriction,
+            &ett_CNodeRestriction,
+            &ett_CPropertyRestriction,
 	};
 
         int i;
