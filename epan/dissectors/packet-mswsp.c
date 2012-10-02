@@ -83,7 +83,6 @@ static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_msg = -1;
 static gint ett_mswsp_pad = -1;
 static gint ett_mswsp_propset_array[2];
-static gint ett_mswsp_propset[8];
 
 static gint ett_mswsp_restriction = -1;
 static gint ett_mswsp_restriction_node = -1;
@@ -96,6 +95,7 @@ static gint ett_CBaseStorageVariant_Array = -1;
 static gint ett_CDbColId = -1;
 static gint ett_GUID = -1;
 static gint ett_CDbProp = -1;
+static gint ett_CDbPropSet = -1;
 
 struct {
     guint propset_array;
@@ -859,23 +859,31 @@ static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
     return NULL;
 }
 
-static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree)
+static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                            proto_tree *pad_tree, const char *fmt, ...)
 {
     int i, num;
     e_guid_t guid;
-    struct GuidPropertySet *propset;
-    proto_item *tree_item = proto_tree_get_parent(tree);
+    struct GuidPropertySet *pset;
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CDbPropSet);
 
     offset = parse_guid(tvb, offset, tree, &guid, "guidPropertySet");
 
-    propset = GuidPropertySet_find_guid(&guid);
+    pset = GuidPropertySet_find_guid(&guid);
 
-    if (propset) {
-        proto_item_append_text(tree_item, " \"%s\" (%s)",
-                               propset->desc, propset->def);
+    if (pset) {
+        proto_item_append_text(item, " \"%s\" (%s)", pset->desc, pset->def);
     } else {
         const char *guid_str = guid_to_str(&guid);
-        proto_item_append_text(tree_item, " {%s}", guid_str);
+        proto_item_append_text(item, " {%s}", guid_str);
     }
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
@@ -883,12 +891,14 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
     num = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "cProperties: %d", num);
     offset += 4;
-    proto_item_append_text(tree_item, " Size: %d", num);
+    proto_item_append_text(item, " Num: %d", num);
 
     for (i = 0; i<num; i++) {
         offset = parse_padding(tvb, offset, 4, pad_tree, "aProp[%d]", i);
-        offset = parse_CDbProp(tvb, offset, tree, pad_tree, propset, "aProp[%d]", i);
+        offset = parse_CDbProp(tvb, offset, tree, pad_tree, pset, "aProp[%d]", i);
     }
+
+    proto_item_set_end(item, tvb, offset);
     return offset;
 }
 
@@ -908,11 +918,7 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
     offset += 4;
 
     for (i = 0; i < (int)num; i++) {
-        proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "PropertySet[%d]", i);
-        proto_tree *tr = proto_item_add_subtree(ti, ett_mswsp_propset[ett_idx.propset++]);
-        DISSECTOR_ASSERT(ett_idx.propset <= array_length(ett_mswsp_propset));
-        offset = parse_CDbPropSet(tvb, offset, tr, pad_tree);
-        proto_item_set_end(ti, tvb, offset);
+        offset = parse_CDbPropSet(tvb, offset, tree, pad_tree, "PropertySet[%d]", i);
     }
 
     DISSECTOR_ASSERT(offset - offset_in == (int)size);
@@ -1474,6 +1480,7 @@ proto_register_mswsp(void)
             &ett_CDbColId,
             &ett_GUID,
             &ett_CDbProp,
+            &ett_CDbPropSet,
 	};
 
         int i;
@@ -1486,7 +1493,6 @@ proto_register_mswsp(void)
 	proto_register_field_array(proto_mswsp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
         register_ett_array(ett_mswsp_propset_array, array_length(ett_mswsp_propset_array));
-        register_ett_array(ett_mswsp_propset, array_length(ett_mswsp_propset));
 
         for (i=0; i<(int)array_length(GuidPropertySet); i++) {
             guids_add_guid(&GuidPropertySet[i].guid, GuidPropertySet[i].def);
