@@ -106,11 +106,17 @@ struct {
     guint prop_value_val;
 } ett_idx;
 
-static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *text)
+static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
     if (offset % alignment) {
         const int padding = alignment - (offset % alignment);
-        proto_tree_add_text(pad_tree, tvb, offset, padding, "%s (%d)", text ? text : "???", padding);
+        va_list ap;
+        proto_item *ti;
+        va_start(ap, fmt);
+        ti = proto_tree_add_text_valist(pad_tree, tvb, offset, padding, fmt, ap);
+        va_end(ap);
+
+        proto_item_append_text(ti, " (%d)", padding);
         offset += padding;
     }
     DISSECTOR_ASSERT((offset % alignment) == 0);
@@ -288,7 +294,7 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, p
         offset = parse_CRestriction(tvb, offset, tr, pad_tree, &r);
         proto_item_set_end(ti, tvb, offset);
 
-        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode"); /*at begin or end of loop ????*/
+        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
     }
     return offset;
 }
@@ -812,7 +818,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         proto_item *ti;
         proto_tree *tr;
 
-        offset = parse_padding(tvb, offset, 4, pad_tree, "aProp");
+        offset = parse_padding(tvb, offset, 4, pad_tree, "aProp[%d]", i);
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "aProp[%d]", i);
         tr = proto_item_add_subtree(ti, ett_mswsp_prop[ett_idx.prop++]); //???
@@ -937,7 +943,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
         offset = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
         proto_item_set_end(ti, tvb, offset);
 
-        offset = parse_padding(tvb, offset, 8, pad_tree, NULL);
+        offset = parse_padding(tvb, offset, 8, pad_tree, "???");
         DISSECTOR_ASSERT(offset == (int)tvb_length(tvb));
 
         /* make "Padding" the last item */
