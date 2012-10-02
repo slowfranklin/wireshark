@@ -121,6 +121,7 @@ static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *gui
     const char *guid_str, *name, *bytes;
     proto_tree *tr;
     proto_item *ti;
+
     tvb_get_letohguid(tvb, offset, guid);
     guid_str =  guid_to_str(guid);
     name = guids_get_guid_name(guid);
@@ -764,13 +765,16 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree
 }
 
 static struct {
-    const char *guid;
+    e_guid_t guid;
     const char *def;
     const char *desc;
 } GuidPropertySet[] = {
-    {"a9bd1526-6a80-11d0-8c9d-0020af1d740e", "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework"},
-    {"a7ac77ed-f8d7-11ce-a798-0020f8008025", "DBPROPSET_QUERYEXT", "Query extension"},
-    {"afafaca5-b5d1-11d0-8c62-00c04fc2db8d", "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core"},
+    {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
+     "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework"},
+    {{0xa7ac77ed, 0xf8d7, 0x11ce, {0xa7, 0x98, 0x00, 0x20, 0xf8, 0x00, 0x80, 0x25}},
+     "DBPROPSET_QUERYEXT", "Query extension"},
+    {{0xafafaca5, 0xb5d1, 0x11d0, {0x8c, 0x62, 0x00, 0xc0, 0x4f, 0xc2, 0xdb, 0x8d}},
+     "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core"},
 };
 
 
@@ -778,15 +782,12 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
 {
     int i, num;
     e_guid_t guid;
-    const char *guid_str;
     proto_item *tree_item = proto_tree_get_parent(tree);
 
     offset = parse_guid(tvb, offset, tree, &guid, "guidPropertySet");
-    guid_str =  guid_to_str(&guid);
 
     for (i=0; (unsigned)i<array_length(GuidPropertySet); i++) {
-        if (strcasecmp(GuidPropertySet[i].guid, guid_str) == 0) {
-//            proto_item_append_text(ti, " (%s)", GuidPropertySet[i].def);
+        if (guid_cmp(&GuidPropertySet[i].guid, &guid) == 0) {
             proto_item_append_text(tree_item, " %s (%s)",
                                    GuidPropertySet[i].def,
                                    GuidPropertySet[i].desc);
@@ -794,7 +795,8 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
         }
     }
     if (i==array_length(GuidPropertySet)) {
-         proto_item_append_text(tree_item, " {%s}", guid_str);
+        const char *guid_str = guid_to_str(&guid);
+        proto_item_append_text(tree_item, " {%s}", guid_str);
     }
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "guidPropertySet");
@@ -1402,6 +1404,8 @@ proto_register_mswsp(void)
             &ett_GUID,
 	};
 
+        int i;
+
 /* Register the protocol name and description */
 	proto_mswsp = proto_register_protocol("Windows Search Protocol",
                                               "MS-WSP", "mswsp");
@@ -1412,6 +1416,10 @@ proto_register_mswsp(void)
         register_ett_array(ett_mswsp_propset_array, array_length(ett_mswsp_propset_array));
         register_ett_array(ett_mswsp_propset, array_length(ett_mswsp_propset));
         register_ett_array(ett_mswsp_prop, array_length(ett_mswsp_prop));
+
+        for (i=0; i<(int)array_length(GuidPropertySet); i++) {
+            guids_add_guid(&GuidPropertySet[i].guid, GuidPropertySet[i].def);
+        }
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
 /* (Registration of a prefs callback is not required if there are no     */
