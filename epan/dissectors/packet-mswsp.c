@@ -805,7 +805,14 @@ static const value_string DBPROPSET_QUERYEXT_IDS[] = {
     {0x02, "DBPROP_USECONTENTINDEX"},
     {0x03, "DBPROP_DEFERNONINDEXEDTRIMMING"},
     {0x04, "DBPROP_USEEXTENDEDDBTYPES"},
+    {0x05, "DBPROP_IGNORENOISEONLYCLAUSES"},
+    {0x06, "DBPROP_GENERICOPTIONS_STRING"},
     {0x07, "DBPROP_FIRSTROWS"},
+    {0x08, "DBPROP_DEFERCATALOGVERIFICATION"},
+    {0x0a, "DBPROP_GENERATEPARSETREE"},
+    {0x0c, "DBPROP_FREETEXTANYTERM"},
+    {0x0d, "DBPROP_FREETEXTUSESTEMMING"},
+    {0x0e, "DBPROP_IGNORESBRI"},
     {0x10, "DBPROP_ENABLEROWSETEVENTS"},
     {0, NULL}
 };
@@ -813,6 +820,16 @@ static const value_string DBPROPSET_QUERYEXT_IDS[] = {
 static const value_string DBPROPSET_CIFRMWRKCORE_EXT_IDS[] = {
     {0x02, "DBPROP_MACHINE"},
     {0x03, "DBPROP_CLIENT_CLSID"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_MSIDXS_ROWSETEXT_IDS[] = {
+    {0x02, "MSIDXSPROP_ROWSETQUERYSTATUS"},
+    {0x03, "MSIDXSPROP_COMMAND_LOCALE_STRING"},
+    {0x04, "MSIDXSPROP_QUERY_RESTRICTION"},
+    {0x05, "MSIDXSPROP_PARSE_TREE"},
+    {0x06, "MSIDXSPROP_MAX_RANK"},
+    {0x07, "MSIDXSPROP_RESULTS_FOUND"},
     {0, NULL}
 };
 
@@ -826,6 +843,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xafafaca5, 0xb5d1, 0x11d0, {0x8c, 0x62, 0x00, 0xc0, 0x4f, 0xc2, 0xdb, 0x8d}},
      "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core",
      DBPROPSET_CIFRMWRKCORE_EXT_IDS},
+    {{0xAA6EE6B0, 0xE828, 0x11D0, {0xB2, 0x3E, 0x00, 0xAA, 0x00, 0x47, 0xFC, 0x01}},
+      "DBPROPSET_MSIDXS_ROWSETEXT", "???",
+     DBPROPSET_MSIDXS_ROWSETEXT_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
