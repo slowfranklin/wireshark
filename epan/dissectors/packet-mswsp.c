@@ -741,13 +741,24 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
     return offset;
 }
 
-static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree, const char *fmt, ...)
+struct GuidPropertySet {
+    e_guid_t guid;
+    const char *def;
+    const char *desc;
+    const value_string *id_map;
+};
+
+static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                         proto_tree *pad_tree, struct GuidPropertySet *propset,
+                         const char *fmt, ...)
 {
+    static const value_string EMPTY_VS[] = {{0, NULL}};
+    const value_string *vs = (propset && propset->id_map) ? propset->id_map : EMPTY_VS;
     guint32 id, opt, status;
     struct CBaseStorageVariant value;
     proto_item *item;
     proto_tree *tree;
-    char *str;
+    const char *str;
     va_list ap;
 
     va_start(ap, fmt);
@@ -757,9 +768,10 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pro
     tree = proto_item_add_subtree(item, ett_CDbProp);
 
     id = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "Id: %08x", id);
+    str = val_to_str(id, vs, "0x%08x");
+    proto_tree_add_text(tree, tvb, offset, 4, "Id: %s (0x%08x)", str[0] == '0' ? "" : str, id);
     offset += 4;
-    proto_item_append_text(item, " Id: 0x%08x", id);
+    proto_item_append_text(item, " Id: %s", str);
 
     opt = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "Options: %08x", opt);
@@ -780,19 +792,40 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pro
     return offset;
 }
 
-struct GuidPropertySet {
-    e_guid_t guid;
-    const char *def;
-    const char *desc;
+/* 2.2.1.31.1 */
+static const value_string DBPROPSET_FSCIFRMWRK_EXT_IDS[] = {
+    {0x02, "DBPROP_CI_CATALOG_NAME"},
+    {0x03, "DBPROP_CI_INCLUDE_SCOPES"},
+    {0x04, "DBPROP_CI_SCOPE_FLAGS"},
+    {0x07, "DBPROP_CI_QUERY_TYPE"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_QUERYEXT_IDS[] = {
+    {0x02, "DBPROP_USECONTENTINDEX"},
+    {0x03, "DBPROP_DEFERNONINDEXEDTRIMMING"},
+    {0x04, "DBPROP_USEEXTENDEDDBTYPES"},
+    {0x07, "DBPROP_FIRSTROWS"},
+    {0x10, "DBPROP_ENABLEROWSETEVENTS"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_CIFRMWRKCORE_EXT_IDS[] = {
+    {0x02, "DBPROP_MACHINE"},
+    {0x03, "DBPROP_CLIENT_CLSID"},
+    {0, NULL}
 };
 
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
-     "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework"},
+     "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
+     DBPROPSET_FSCIFRMWRK_EXT_IDS},
     {{0xa7ac77ed, 0xf8d7, 0x11ce, {0xa7, 0x98, 0x00, 0x20, 0xf8, 0x00, 0x80, 0x25}},
-     "DBPROPSET_QUERYEXT", "Query extension"},
+     "DBPROPSET_QUERYEXT", "Query extension",
+     DBPROPSET_QUERYEXT_IDS},
     {{0xafafaca5, 0xb5d1, 0x11d0, {0x8c, 0x62, 0x00, 0xc0, 0x4f, 0xc2, 0xdb, 0x8d}},
-     "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core"},
+     "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core",
+     DBPROPSET_CIFRMWRKCORE_EXT_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
@@ -834,7 +867,7 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
 
     for (i = 0; i<num; i++) {
         offset = parse_padding(tvb, offset, 4, pad_tree, "aProp[%d]", i);
-        offset = parse_CDbProp(tvb, offset, tree, pad_tree, "aProp[%d]", i);
+        offset = parse_CDbProp(tvb, offset, tree, pad_tree, propset, "aProp[%d]", i);
     }
     return offset;
 }
