@@ -201,3 +201,19 @@ guids_resolve_guid_to_str(e_guid_t *guid)
                       guid->data4[6], guid->data4[7]);
 }
 
+int guid_cmp(e_guid_t *g1, e_guid_t *g2)
+{
+	if (g1->data1 != g2->data1) {
+		return (g1->data1 < g2->data1) ? -1 : 1;
+	}
+
+	if (g1->data2 != g2->data2) {
+		return (g1->data2 < g2->data2) ? -1 : 1;
+	}
+
+	if (g1->data3 != g2->data3) {
+		return (g1->data3 < g2->data3) ? -1 : 1;
+	}
+
+	return memcmp(&g1->data4[0], &g2->data4[0], 8);
+}

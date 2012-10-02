@@ -62,4 +62,6 @@ WS_DLL_PUBLIC const gchar* guids_resolve_guid_to_str(e_guid_t *guid);
 /* (if you need hex string only, use guid_to_str instead) */
 #define guids_resolve_uuid_to_str(uuid) guids_resolve_guid_to_str((e_guid_t *) (uuid))
 
+extern int guid_cmp(e_guid_t *g1, e_guid_t *g2);
+
 #endif /* __GUID_UTILS_H__ */
