@@ -796,9 +796,9 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *tree, proto_t
 
     for (i=0; (unsigned)i<array_length(GuidPropertySet); i++) {
         if (guid_cmp(&GuidPropertySet[i].guid, &guid) == 0) {
-            proto_item_append_text(tree_item, " %s (%s)",
-                                   GuidPropertySet[i].def,
-                                   GuidPropertySet[i].desc);
+            proto_item_append_text(tree_item, " \"%s\" (%s)",
+                                   GuidPropertySet[i].desc,
+                                   GuidPropertySet[i].def);
             break;
         }
     }
