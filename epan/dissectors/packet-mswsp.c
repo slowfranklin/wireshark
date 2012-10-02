@@ -82,7 +82,6 @@ static gint ett_mswsp = -1;
 static gint ett_mswsp_hdr = -1;
 static gint ett_mswsp_msg = -1;
 static gint ett_mswsp_pad = -1;
-static gint ett_mswsp_propset_array[2];
 
 static gint ett_mswsp_restriction = -1;
 static gint ett_mswsp_restriction_node = -1;
@@ -96,6 +95,7 @@ static gint ett_CDbColId = -1;
 static gint ett_GUID = -1;
 static gint ett_CDbProp = -1;
 static gint ett_CDbPropSet = -1;
+static gint ett_CDbPropSet_Array = -1;
 
 struct {
     guint propset_array;
@@ -902,11 +902,22 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     return offset;
 }
 
-static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree, int size_offset)
+static int parse_PropertySetArray(tvbuff_t *tvb, int offset, int size_offset,
+                                  proto_tree *parent_tree, proto_tree *pad_tree,
+                                  const char *fmt, ...)
 {
     const int offset_in = offset;
     guint32 size, num;
     int i;
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CDbPropSet_Array);
 
     size = tvb_get_letohl(tvb, size_offset);
     proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_Blob1, tvb,
@@ -921,6 +932,7 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, proto_tree *tree, p
         offset = parse_CDbPropSet(tvb, offset, tree, pad_tree, "PropertySet[%d]", i);
     }
 
+    proto_item_set_end(item, tvb, offset);
     DISSECTOR_ASSERT(offset - offset_in == (int)size);
     return offset;
 }
@@ -963,7 +975,7 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
     if (in) {
         guint32 blob_size1_off, blob_size2_off;
-        proto_tree *pad_tree, *tr;
+        proto_tree *pad_tree;
 
         ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
@@ -1000,19 +1012,14 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
 
         offset = parse_padding(tvb, offset, 8, pad_tree, "_paddingcPropSets");
 
-        ti = proto_tree_add_text(tree, tvb, offset, 0, "PropSets");
-        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0]);
-        offset = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size1_off);
-        proto_item_set_end(ti, tvb, offset);
+        offset = parse_PropertySetArray(tvb, offset, blob_size1_off, tree, pad_tree, "PropSets");
 
         offset = parse_padding(tvb, offset, 8, pad_tree, "paddingExtPropset");
 
-        ti = proto_tree_add_text(tree, tvb, offset, 0, "ExtPropset");
-        tr = proto_item_add_subtree(ti, ett_mswsp_propset_array[0 /*XXX*/]);
-        offset = parse_PropertySetArray(tvb, offset, tr, pad_tree, blob_size2_off);
-        proto_item_set_end(ti, tvb, offset);
+        offset = parse_PropertySetArray(tvb, offset, blob_size2_off, tree, pad_tree, "ExtPropset");
 
         offset = parse_padding(tvb, offset, 8, pad_tree, "???");
+
         DISSECTOR_ASSERT(offset == (int)tvb_length(tvb));
 
         /* make "Padding" the last item */
@@ -1481,6 +1488,7 @@ proto_register_mswsp(void)
             &ett_GUID,
             &ett_CDbProp,
             &ett_CDbPropSet,
+            &ett_CDbPropSet_Array,
 	};
 
         int i;
@@ -1492,7 +1500,6 @@ proto_register_mswsp(void)
 /* Required function calls to register the header fields and subtrees used */
 	proto_register_field_array(proto_mswsp, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
-        register_ett_array(ett_mswsp_propset_array, array_length(ett_mswsp_propset_array));
 
         for (i=0; i<(int)array_length(GuidPropertySet); i++) {
             guids_add_guid(&GuidPropertySet[i].guid, GuidPropertySet[i].def);
