@@ -1143,7 +1143,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
                 for (i=0; i<count; i++) {
                     struct CRestriction r;
-                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionArray[%d]", i);
+                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionSet[%d]", i);
                 }
             }
             proto_item_set_end(ti, tvb, offset);
