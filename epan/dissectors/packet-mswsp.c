@@ -664,7 +664,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
                                      struct CBaseStorageVariant *value, const char *text)
 {
     int i, len;
-    proto_item *ti, *ti_type;
+    proto_item *ti, *ti_type, *ti_val;
     proto_tree *tree, *tr;
     enum vType baseType, highType;
 
@@ -694,7 +694,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
         goto not_supported;
     }
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
+    ti_val = proto_tree_add_text(tree, tvb, offset, 0, "vValue");
 
     switch (highType) {
     case VT_EMPTY:
@@ -703,7 +703,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
         break;
     case VT_VECTOR:
         proto_item_append_text(ti_type, "|VT_VECTOR");
-        tr = proto_item_add_subtree(ti, ett_CBaseStorageVariant_Vector);
+        tr = proto_item_add_subtree(ti_val, ett_CBaseStorageVariant_Vector);
 
         len = vvalue_tvb_vector(tvb, offset, &value->vValue.vt_vector, value->type);
         proto_tree_add_text(tr, tvb, offset, 4, "num: %d", value->vValue.vt_vector.len);
@@ -715,7 +715,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
         int num = 1;
 
         proto_item_append_text(ti_type, "|VT_ARRAY");
-        tr = proto_item_add_subtree(ti, ett_CBaseStorageVariant_Array);
+        tr = proto_item_add_subtree(ti_val, ett_CBaseStorageVariant_Array);
 
         cDims = tvb_get_letohs(tvb, offset);
         proto_tree_add_text(tr, tvb, offset, 2, "cDims: %d", cDims);
@@ -744,8 +744,10 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
         proto_item_append_text(ti_type, "|0x%x", highType);
     }
     proto_item_set_end(ti, tvb, offset);
+    proto_item_set_end(ti_val, tvb, offset);
 
-    proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value, false));
+    proto_item_append_text(ti_val, " %s", str_CBaseStorageVariant(value, false));
+    proto_item_append_text(ti, " %s", str_CBaseStorageVariant(value, true));
 
     goto done;
 
