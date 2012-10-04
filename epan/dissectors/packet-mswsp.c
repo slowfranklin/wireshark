@@ -413,6 +413,7 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
         break;
     }
     default:
+        fprintf(stderr, "CRestriciont 0x%08x not Supported\n", v->ulType);
         proto_item_append_text(item, " Not supported!");
     }
 
