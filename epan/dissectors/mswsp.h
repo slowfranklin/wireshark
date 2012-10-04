@@ -206,3 +206,10 @@ struct CRestriction {
 		struct CCoercionRestriction *RTCoerce_Add, *RTCoerce_Multiply, *RTCoerce_Absolute;
 	} u;
 };
+
+
+/* 2.2.1.12 */
+struct CCoercionRestriction {
+	float value;
+	struct CRestriction child;
+};

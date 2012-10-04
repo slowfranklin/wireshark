@@ -96,6 +96,7 @@ static gint ett_CDbPropSet_Array = -1;
 static gint ett_CRestriction = -1;
 static gint ett_CNodeRestriction = -1;
 static gint ett_CPropertyRestriction = -1;
+static gint ett_CCoercionRestriction = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -145,6 +146,9 @@ static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *gui
 }
 
 /*****************************************************************************************/
+static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                              struct CRestriction *v, const char *fmt, ...);
+
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                   struct CNodeRestriction *v, const char* fmt, ...);
 
@@ -249,6 +253,30 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     return offset;
 }
 
+static int parse_CCoercionRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                      proto_tree *pad_tree, struct CCoercionRestriction *v,
+                                      const char *fmt, ...)
+{
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CCoercionRestriction);
+
+    v->value = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "value: %g", (double)v->value);
+    offset += 4;
+
+    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &v->child, "child");
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
 static value_string RT_VALS[] =  {
     {RTNone, "RTNone"},
     {RTAnd, "RTAnd"},
@@ -312,14 +340,25 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
     case RTNot:
     {
         v->u.RTNot = ep_alloc(sizeof(struct CRestriction)); //XXX
-        offset = parse_CRestriction(tvb, offset, tree, pad_tree, v->u.RTNot, "CRestriction");
+        offset = parse_CRestriction(tvb, offset, tree, pad_tree,
+                                    v->u.RTNot, "CRestriction");
     }
     case RTProperty:
     {
         v->u.RTProperty = ep_alloc(sizeof(struct CPropertyRestriction)); //XXX
-        offset = parse_CPropertyRestriction(tvb, offset, tree, pad_tree, v->u.RTProperty, "CPropertyRestriction");
+        offset = parse_CPropertyRestriction(tvb, offset, tree, pad_tree,
+                                            v->u.RTProperty, "CPropertyRestriction");
     }
     break;
+    case RTCoerce_Add:
+    case RTCoerce_Multiply:
+    case RTCoerce_Absolute:
+    {
+        v->u.RTCoerce_Add = ep_alloc(sizeof(struct CCoercionRestriction)); //XXX
+        offset = parse_CCoercionRestriction(tvb, offset, tree, pad_tree,
+                                            v->u.RTCoerce_Add, "CCoercionRestriction");
+        break;
+    }
     default:
         proto_item_append_text(item, " Not supported!");
     }
@@ -1546,6 +1585,7 @@ proto_register_mswsp(void)
             &ett_CRestriction,
             &ett_CNodeRestriction,
             &ett_CPropertyRestriction,
+            &ett_CCoercionRestriction,
 	};
 
         int i;
@@ -1561,6 +1601,7 @@ proto_register_mswsp(void)
         for (i=0; i<(int)array_length(GuidPropertySet); i++) {
             guids_add_guid(&GuidPropertySet[i].guid, GuidPropertySet[i].def);
         }
+
 
 /* Register preferences module (See Section 2.6 for more on preferences) */
 /* (Registration of a prefs callback is not required if there are no     */
