@@ -213,3 +213,11 @@ struct CCoercionRestriction {
 	float value;
 	struct CRestriction child;
 };
+
+/* 2.2.1.3 */
+struct CContentRestriction {
+	struct CFullPropSpec property;
+	const char *phrase;
+	guint32 lcid;
+	guint32 method;
+};

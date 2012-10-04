@@ -97,6 +97,7 @@ static gint ett_CRestriction = -1;
 static gint ett_CNodeRestriction = -1;
 static gint ett_CPropertyRestriction = -1;
 static gint ett_CCoercionRestriction = -1;
+static gint ett_CContentRestriction = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -277,6 +278,51 @@ static int parse_CCoercionRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     return offset;
 }
 
+static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                     proto_tree *pad_tree, struct CContentRestriction *v,
+                                     const char *fmt, ...)
+{
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+    guint32 cc;
+    const char *str;
+
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CContentRestriction);
+
+    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v->property);
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "Padding1");
+
+    cc = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cc: %u", cc);
+    offset += 4;
+
+//    str = tvb_get_ephemeral_string_enc(tvb, offset, 2*cc, ENC_UTF_16);
+    str = tvb_get_unicode_string(tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
+    v->phrase = se_strdup(str);
+    proto_tree_add_text(tree, tvb, offset, 2*cc, "phrase: %s", str);
+    offset += 2*cc;
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "Padding2");
+
+    v->lcid = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
+    offset += 4;
+
+    v->method = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "method: 0x%08x", v->method);
+    offset += 4;
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
 static value_string RT_VALS[] =  {
     {RTNone, "RTNone"},
     {RTAnd, "RTAnd"},
@@ -358,6 +404,12 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
         v->u.RTCoerce_Add = ep_alloc(sizeof(struct CCoercionRestriction)); //XXX
         offset = parse_CCoercionRestriction(tvb, offset, tree, pad_tree,
                                             v->u.RTCoerce_Add, "CCoercionRestriction");
+        break;
+    }
+    case RTContent: {
+        v->u.RTContent = ep_alloc(sizeof(struct CContentRestriction)); //XXX
+        offset = parse_CContentRestriction(tvb, offset, tree, pad_tree,
+                                           v->u.RTContent, "CContentRestriction");
         break;
     }
     default:
@@ -1587,6 +1639,7 @@ proto_register_mswsp(void)
             &ett_CNodeRestriction,
             &ett_CPropertyRestriction,
             &ett_CCoercionRestriction,
+            &ett_CContentRestriction,
 	};
 
         int i;
