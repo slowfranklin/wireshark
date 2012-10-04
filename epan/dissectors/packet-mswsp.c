@@ -1109,7 +1109,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
     if (in) {
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         proto_tree *pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
-        guint8 CColumnSetPresent, CRestrictionPresent;
+        guint8 CColumnSetPresent, CRestrictionPresent, CSortSetPresent;
         int len;
         guint32 size = tvb_get_letohl(tvb, offset);
         proto_tree_add_text(tree, tvb, offset, 4, "size");
@@ -1149,6 +1149,19 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                 }
             }
             proto_item_set_end(ti, tvb, offset);
+        }
+
+        CSortSetPresent = tvb_get_guint8(tvb, offset);
+        proto_tree_add_text(tree, tvb, offset, 1, "CSortSetPresent: %s", CSortSetPresent ? "True" : "False");
+        offset += 1;
+        if (CSortSetPresent) {
+            guint32 count;
+            offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCSortSetPresent");
+            /*2.2.1.43 CSortSet */
+            /*2.2.1.10 CSort 16Bytes */
+            count = tvb_get_letohl(tvb, offset);
+            proto_tree_add_text(tree, tvb, offset, 4 + 16*count, "CSortSet: count %u", count);
+            offset += (4 + 16*count);
         }
     }
 
