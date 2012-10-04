@@ -323,6 +323,28 @@ static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *pare
     return offset;
 }
 
+
+static int parse_CReuseWhere(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                             proto_tree *pad_tree _U_, struct CReuseWhere *v,
+                             const char *fmt, ...)
+{
+    proto_item *item;
+    va_list ap;
+
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    v->whereId = tvb_get_letohl(tvb, offset);
+    offset += 4;
+
+    proto_item_append_text(item, "Id: %u", v->whereId);
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+};
+
 static value_string RT_VALS[] =  {
     {RTNone, "RTNone"},
     {RTAnd, "RTAnd"},
@@ -410,6 +432,12 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
         v->u.RTContent = ep_alloc(sizeof(struct CContentRestriction)); //XXX
         offset = parse_CContentRestriction(tvb, offset, tree, pad_tree,
                                            v->u.RTContent, "CContentRestriction");
+        break;
+    }
+    case RTReuseWhere: {
+        v->u.RTReuseWhere = ep_alloc(sizeof(struct CReuseWhere)); //XXX
+        offset = parse_CReuseWhere(tvb, offset, tree, pad_tree,
+                                   v->u.RTReuseWhere, "CReuseWhere");
         break;
     }
     default:

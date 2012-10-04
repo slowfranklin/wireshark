@@ -221,3 +221,8 @@ struct CContentRestriction {
 	guint32 lcid;
 	guint32 method;
 };
+
+/* 2.2.1.8 */
+struct CReuseWhere /*Restriction*/ {
+	guint32 whereId;
+};
