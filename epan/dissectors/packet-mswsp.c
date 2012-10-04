@@ -1118,6 +1118,34 @@ static int parse_PropertySetArray(tvbuff_t *tvb, int offset, int size_offset,
     return offset;
 }
 
+int parse_CColumnSet(tvbuff_t *tvb, int offset, proto_tree *tree, const char *fmt, ...)
+{
+    guint32 count, v, i;
+    proto_item *item;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    count = tvb_get_letohl(tvb, offset);
+    offset += 4;
+
+    proto_item_append_text(item, " Count %u [", count);
+    for (i=0; i<count; i++) {
+        v = tvb_get_letohl(tvb, offset);
+        offset += 4;
+        if (i>0) {
+            proto_item_append_text(item, ",%u", v);
+        } else {
+            proto_item_append_text(item, "%u", v);
+        }
+    }
+    proto_item_append_text(item, "]");
+    return offset;
+}
+
 /* Code to actually dissect the packets */
 
 static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
@@ -1231,7 +1259,6 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         proto_tree *pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
         guint8 CColumnSetPresent, CRestrictionPresent, CSortSetPresent;
-        int len;
         guint32 size = tvb_get_letohl(tvb, offset);
         proto_tree_add_text(tree, tvb, offset, 4, "size");
         proto_tree_add_text(tree, tvb, offset, size, "ALL");
@@ -1242,13 +1269,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         offset += 1;
 
         if (CColumnSetPresent) {
-            guint32 count;
             offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCColumnSetPresent");
-
-            count = tvb_get_letohl(tvb, offset);
-            len = 4 + 4*count;
-            proto_tree_add_text(tree, tvb, offset, len, "CColumnSet: count %d", count);
-            offset += len;
+            offset = parse_CColumnSet(tvb, offset, tree, "CColumnSet");
         }
 
         CRestrictionPresent = tvb_get_guint8(tvb, offset);
