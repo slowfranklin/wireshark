@@ -194,13 +194,28 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
 
 
 
+static const value_string PR_VALS[] = {
+	{PRLT, "PRLT"},
+	{PRLE, "PRLE"},
+	{PRGT, "PRGT"},
+	{PRGE, "PRGE"},
+	{PREQ, "PREQ"},
+	{PRNE, "PRNE"},
+	{PRRE, "PRRE"},
+	{PRAllBits, "PRAllBits"},
+	{PRSomeBits, "PRSomeBits"},
+	{PRAll, "PRAll"},
+	{PRSome, "PRSome"},
+};
+
+
 static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                                       proto_tree *pad_tree, struct CPropertyRestriction *v,
                                       const char *fmt, ...)
 {
     proto_tree *tree, *tr;
     proto_item *item, *ti;
-
+    const char *str;
     va_list ap;
 
     va_start(ap, fmt);
@@ -210,7 +225,10 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     tree = proto_item_add_subtree(item, ett_CPropertyRestriction);
 
     v->relop = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "relop: 0x%04x", v->relop);
+    str = val_to_str(v->relop, PR_VALS, "0x%04x");
+    proto_tree_add_text(tree, tvb, offset, 4, "relop: %s (0x%04x)",
+                        str[0]=='\0' ? "" : str, v->relop);
+    proto_item_append_text(item, " Op: %s", str);
     offset += 4;
 
     ti = proto_tree_add_text(tree, tvb, offset, 0, "Property");
