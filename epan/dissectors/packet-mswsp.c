@@ -183,7 +183,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
     offset += 4;
 
     if (v->kind == PRSPEC_LPWSTR) {
-        int len = v->u.propid;
+        int len = 2*v->u.propid;
         v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
         proto_item_append_text(tree_item, " \"%s\"", v->u.name);
