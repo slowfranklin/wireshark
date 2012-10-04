@@ -231,12 +231,34 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     return offset;
 }
 
+static value_string RT_VALS[] =  {
+    {RTNone, "RTNone"},
+    {RTAnd, "RTAnd"},
+    {RTOr, "RTOr"},
+    {RTNot, "RTNot"},
+    {RTContent, "RTContent"},
+    {RTProperty, "RTProperty"},
+    {RTProximity, "RTProximity"},
+    {RTVector, ""},
+    {RTNatLanguage, "RTNatLanguage"},
+    {RTScope, "RTScope"},
+    {RTCoerce_Add, "RTCoerce_Add"},
+    {RTCoerce_Multiply, "RTCoerce_Multiply"},
+    {RTCoerce_Absolute, "RTCoerce_Absolute"},
+    {RTProb, "RTProb"},
+    {RTFeedback, "RTFeedback"},
+    {RTReldoc, "RTReldoc"},
+    {RTReuseWhere, "RTReuseWhere"},
+    {RTInternalProp, "RTInternalProp"},
+    {RTPhrase, "RTInternalProp"},
+};
+
 static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
                               struct CRestriction *v, const char *fmt, ...)
 {
     proto_tree *tree;
     proto_item *item, *ti;
-
+    const char *str;
     va_list ap;
 
     va_start(ap, fmt);
@@ -247,7 +269,10 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
 
 
     v->ulType = tvb_get_letohl(tvb, offset);
-    ti = proto_tree_add_text(tree, tvb, offset, 4, "ulType: 0x%.8x", v->ulType);
+    str = val_to_str(v->ulType, RT_VALS, "0x%.8x");
+    ti = proto_tree_add_text(tree, tvb, offset, 4, "ulType: %s (0x%.8x)",
+                             str[0] == '0' ? "" : str, v->ulType);
+    proto_item_append_text(item, " Type: %s", str);
     offset += 4;
 
     v->Weight = tvb_get_letohl(tvb, offset);
