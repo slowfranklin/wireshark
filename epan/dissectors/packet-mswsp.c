@@ -335,21 +335,22 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
     {
         v->u.RTAnd = ep_alloc(sizeof(struct CNodeRestriction)); //XXX
         offset = parse_CNodeRestriction(tvb, offset, tree, pad_tree, v->u.RTAnd, "CNodeRestriction");
+        break;
     }
-    break;
     case RTNot:
     {
         v->u.RTNot = ep_alloc(sizeof(struct CRestriction)); //XXX
         offset = parse_CRestriction(tvb, offset, tree, pad_tree,
                                     v->u.RTNot, "CRestriction");
+        break;
     }
     case RTProperty:
     {
         v->u.RTProperty = ep_alloc(sizeof(struct CPropertyRestriction)); //XXX
         offset = parse_CPropertyRestriction(tvb, offset, tree, pad_tree,
                                             v->u.RTProperty, "CPropertyRestriction");
+        break;
     }
-    break;
     case RTCoerce_Add:
     case RTCoerce_Multiply:
     case RTCoerce_Absolute:
