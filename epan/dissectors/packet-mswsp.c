@@ -109,6 +109,7 @@ static gint ett_CSortAggregSet = -1;
 static gint ett_CInGroupSortAggregSet = -1;
 static gint ett_CInGroupSortAggregSets = -1;
 static gint ett_CRowsetProperties = -1;
+static gint ett_CFullPropSpec = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -164,7 +165,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
 
 /* 2.2.1.2 CFullPropSpec */
 static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                               struct CFullPropSpec *v);
+                               struct CFullPropSpec *v, const char *fmt, ...);
 
 /* 2.2.1.3 CContentRestriction */
 static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
@@ -291,22 +292,31 @@ static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
 */
 
 
-static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                               struct CFullPropSpec *v)
+static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
+                               proto_tree *parent_tree, proto_tree *pad_tree,
+                               struct CFullPropSpec *v, const char *fmt, ...)
 {
     static const value_string KIND[] = {
         {0, "PRSPEC_LPWSTR"},
         {1, "PRSPEC_PROPID"},
         {0, NULL}
     };
+
     const char *guid_str;
-    proto_item *tree_item = proto_tree_get_parent(tree);
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CFullPropSpec);
 
     offset = parse_padding(tvb, offset, 8, pad_tree, "paddingPropSet");
 
     offset = parse_guid(tvb, offset, tree, &v->guid, "GUID");
     guid_str =  guids_resolve_guid_to_str(&v->guid );
-    proto_item_append_text(tree_item, " {%s}", guid_str);
+    proto_item_append_text(item, " {%s}", guid_str);
 
     v->kind = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulKind: %s ", val_to_str(v->kind, KIND, "(Unknown: 0x%x)"));
@@ -320,13 +330,15 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
         int len = 2*v->u.propid;
         v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
-        proto_item_append_text(tree_item, " \"%s\"", v->u.name);
+        proto_item_append_text(item, " \"%s\"", v->u.name);
         offset += len;
     } else if (v->kind == PRSPEC_PROPID) {
-        proto_item_append_text(tree_item, " 0x%08x", v->u.propid);
+        proto_item_append_text(item, " 0x%08x", v->u.propid);
     } else {
-        proto_item_append_text(tree_item, "<INVALID>");
+        proto_item_append_text(item, "<INVALID>");
     }
+
+    proto_item_set_end(item, tvb, offset);
     return offset;
 }
 
@@ -351,8 +363,8 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
                                       proto_tree *pad_tree, struct CPropertyRestriction *v,
                                       const char *fmt, ...)
 {
-    proto_tree *tree, *tr;
-    proto_item *item, *ti;
+    proto_tree *tree;
+    proto_item *item;
     const char *str;
     va_list ap;
 
@@ -369,10 +381,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     proto_item_append_text(item, " Op: %s", str);
     offset += 4;
 
-    ti = proto_tree_add_text(tree, tvb, offset, 0, "Property");
-    tr = proto_item_add_subtree(ti, ett_mswsp_property_restriction);
-    offset = parse_CFullPropSpec(tvb, offset, tr, pad_tree, &v->property);
-    proto_item_set_end(ti, tvb, offset);
+    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v->property, "Property");
 
     offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &v->prval, "prval");
 
@@ -428,7 +437,7 @@ static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *pare
 
     tree = proto_item_add_subtree(item, ett_CContentRestriction);
 
-    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v->property);
+    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v->property, "Property");
 
     offset = parse_padding(tvb, offset, 4, pad_tree, "Padding1");
 
@@ -2238,6 +2247,7 @@ proto_register_mswsp(void)
             &ett_CInGroupSortAggregSet,
             &ett_CInGroupSortAggregSets,
             &ett_CRowsetProperties,
+            &ett_CFullPropSpec,
 	};
 
         int i;
