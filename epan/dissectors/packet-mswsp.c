@@ -157,15 +157,133 @@ static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *gui
 }
 
 /*****************************************************************************************/
-static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
-                              struct CRestriction *v, const char *fmt, ...);
-
-static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
-                                  struct CNodeRestriction *v, const char* fmt, ...);
-
+/* 2.2.1.1 CBaseStorageVariant */
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
                                      struct CBaseStorageVariant *value, const char *text);
 
+/* 2.2.1.2 CFullPropSpec */
+static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
+                               struct CFullPropSpec *v);
+
+/* 2.2.1.3 CContentRestriction */
+static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                     proto_tree *pad_tree, struct CContentRestriction *v,
+                                     const char *fmt, ...);
+/* 2.2.1.6 CNodeRestriction */
+static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
+                                  struct CNodeRestriction *v, const char* fmt, ...);
+
+/* 2.2.1.7 CPropertyRestriction */
+static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                      proto_tree *pad_tree, struct CPropertyRestriction *v,
+                                      const char *fmt, ...);
+
+/* 2.2.1.8 CReuseWhere */
+static int parse_CReuseWhere(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                             proto_tree *pad_tree _U_, struct CReuseWhere *v,
+                             const char *fmt, ...);
+
+/* 2.2.1.12 CCoercionRestriction */
+static int parse_CCoercionRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                      proto_tree *pad_tree, struct CCoercionRestriction *v,
+                                      const char *fmt, ...);
+
+/* 2.2.1.17 CRestriction */
+static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                              struct CRestriction *v, const char *fmt, ...);
+
+/* 2.2.1.18 CColumnSet */
+static int parse_CColumnSet(tvbuff_t *tvb, int offset, proto_tree *tree, const char *fmt, ...);
+
+/* 2.2.1.20 CCategorizationSpec */
+static int parse_CCategorizationSpec(tvbuff_t *tvb, int offset,
+                                     proto_tree *parent_tree, proto_tree *pad_tree,
+                                     const char *fmt, ...);
+
+/* 2.2.1.21 CCategSpec */
+static int parse_CCategSpec(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree,
+                            const char *fmt, ...);
+
+/* 2.2.1.22 CRangeCategSpec */
+static int parse_CRangeCategSpec(tvbuff_t *tvb, int offset,
+                                 proto_tree *parent_tree, proto_tree *pad_tree,
+                                 const char *fmt, ...);
+
+/* 2.2.1.23 RANGEBOUNDARY */
+static int parse_RANGEBOUNDARY(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                               proto_tree *pad_tree, const char *fmt, ...);
+
+/* 2.2.1.24 CAggregSet */
+static int parse_CAggregSet(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree,
+                            const char *fmt, ...);
+
+/* 2.2.1.25 CAggregSpec */
+static int parse_CAggregSpec(tvbuff_t *tvb, int offset,
+                             proto_tree *parent_tree, proto_tree *pad_tree,
+                             const char *fmt, ...);
+
+/* 2.2.1.26 CSortAggregSet */
+static int parse_CSortAggregSet(tvbuff_t *tvb, int offset,
+                                proto_tree *parent_tree, proto_tree *pad_tree,
+                                const char *fmt, ...);
+
+/* 2.2.1.27 CAggregSortKey */
+static int parse_CAggregSortKey(tvbuff_t *tvb, int offset,
+                                proto_tree *parent_tree, proto_tree *pad_tree,
+                                const char *fmt, ...);
+
+/* 2.2.1.28 CInGroupSortAggregSets */
+static int parse_CInGroupSortAggregSets(tvbuff_t *tvb, int offset,
+                                        proto_tree *parent_tree, proto_tree *pad_tree,
+                                        const char *fmt, ...);
+
+/* 2.2.1.29 CInGroupSortAggregSet */
+static int parse_CInGroupSortAggregSet(tvbuff_t *tvb, int offset,
+                                       proto_tree *parent_tree, proto_tree *pad_tree,
+                                       const char *fmt, ...);
+/* 2.2.1.30 CDbColId */
+static int parse_CDbColId(tvbuff_t *tvb, int offset,
+                          proto_tree *parent_tree, proto_tree *pad_tree, const char *text);
+
+/* 2.2.1.31 CDbProp */
+struct GuidPropertySet;
+static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                         proto_tree *pad_tree, struct GuidPropertySet *propset,
+                         const char *fmt, ...);
+
+/* 2.2.1.32 CDbPropSet */
+static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                            proto_tree *pad_tree, const char *fmt, ...);
+
+
+/*
+2.2.1.4 CInternalPropertyRestriction
+2.2.1.5 CNatLanguageRestriction
+2.2.1.9 CScopeRestriction
+2.2.1.10 CSort
+2.2.1.11 CVectorRestriction
+2.2.1.13 CRelDocRestriction
+2.2.1.14 CProbRestriction
+2.2.1.15 CFeedbackRestriction
+2.2.1.16 CRestrictionArray
+2.2.1.19 CCategorizationSet
+2.2.1.33 CPidMapper
+2.2.1.34 CColumnGroupArray
+2.2.1.35 CColumnGroup
+2.2.1.36 SProperty
+2.2.1.37 CRowSeekAt
+2.2.1.38 CRowSeekAtRatio
+2.2.1.39 CRowSeekByBookmark
+2.2.1.40 CRowSeekNext
+2.2.1.41 CRowsetProperties
+2.2.1.42 CRowVariant
+2.2.1.43 CSortSet
+2.2.1.44 CTableColumn
+2.2.1.45 SERIALIZEDPROPERTYVALUE
+2.2.1.46 CCompletionCategSp
+*/
 
 
 static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
