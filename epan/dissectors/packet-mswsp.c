@@ -828,7 +828,7 @@ static void vvalue_strbuf_append_vector(emem_strbuf_t *strbuf, struct vt_vector 
 }
 
 
-struct vtype VT_TYPE[] = {
+static struct vtype VT_TYPE[] = {
     {VT_EMPTY,             "VT_EMPTY",              0, vvalue_tvb_get0, vvalue_strbuf_append_null},
     {VT_NULL,              "VT_NULL",               0, vvalue_tvb_get0, vvalue_strbuf_append_null},
     {VT_I2,                "VT_I2",                 2, vvalue_tvb_get2, vvalue_strbuf_append_i2},
