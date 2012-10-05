@@ -98,6 +98,16 @@ static gint ett_CNodeRestriction = -1;
 static gint ett_CPropertyRestriction = -1;
 static gint ett_CCoercionRestriction = -1;
 static gint ett_CContentRestriction = -1;
+static gint ett_RANGEBOUNDARY = -1;
+static gint ett_CRangeCategSpec = -1;
+static gint ett_CCategSpec = -1;
+static gint ett_CAggregSpec = -1;
+static gint ett_CAggregSet = -1;
+static gint ett_CCategorizationSpec = -1;
+static gint ett_CAggregSortKey = -1;
+static gint ett_CSortAggregSet = -1;
+static gint ett_CInGroupSortAggregSet = -1;
+static gint ett_CInGroupSortAggregSets = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -1146,6 +1156,355 @@ int parse_CColumnSet(tvbuff_t *tvb, int offset, proto_tree *tree, const char *fm
     return offset;
 }
 
+/* 2.2.1.23 RANGEBOUNDARY */
+int parse_RANGEBOUNDARY(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                        proto_tree *pad_tree, const char *fmt, ...)
+{
+    guint32 ulType;
+    guint8 labelPresent;
+    proto_item *item;
+    proto_tree *tree;
+    struct CBaseStorageVariant prval;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_RANGEBOUNDARY);
+    va_end(ap);
+
+    ulType = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "ulType 0x%08x", ulType);
+    proto_item_append_text(item, ": Type 0x%08x", ulType);
+    offset += 4;
+
+    ZERO_STRUCT(prval);
+    offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &prval, "prVal");
+
+    labelPresent = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "labelPresent: %s", labelPresent ? "True" : "False");
+    offset += 1;
+
+    if (labelPresent) {
+        guint32 ccLabel;
+        const char *label;
+        offset = parse_padding(tvb, offset, 4, pad_tree, "paddingLabelPresent");
+
+        ccLabel = tvb_get_letohl(tvb, offset);
+        proto_tree_add_text(tree, tvb, offset, 4, "ccLabel: %u", ccLabel);
+        offset += 4;
+
+        label = tvb_get_unicode_string(tvb, offset, 2*ccLabel, ENC_LITTLE_ENDIAN);
+        proto_tree_add_text(tree, tvb, offset, 2*ccLabel, "Label: \"%s\"", label);
+        proto_item_append_text(item, " Label: \"%s\"", label);
+        offset += 2*ccLabel;
+    }
+
+    proto_item_append_text(item, " Val: %s", str_CBaseStorageVariant(&prval, true));
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+
+/* 2.2.1.22 CRangeCategSpec */
+int parse_CRangeCategSpec(tvbuff_t *tvb, int offset,
+                          proto_tree *parent_tree, proto_tree *pad_tree,
+                          const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+    unsigned i;
+    guint32 lcid, cRange;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CRangeCategSpec);
+    va_end(ap);
+
+    lcid = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "Lcid 0x%08x", lcid);
+    offset += 4;
+
+    cRange = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cRange 0x%08x", cRange);
+    offset += 4;
+
+    for (i=0; i<cRange; i++) {
+        offset = parse_RANGEBOUNDARY(tvb, offset, tree, pad_tree, "aRangeBegin[%u]", i);
+
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.21 CCategSpec */
+int parse_CCategSpec(tvbuff_t *tvb, int offset,
+                     proto_tree *parent_tree, proto_tree *pad_tree,
+                     const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+    guint32 type;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CCategSpec);
+    va_end(ap);
+
+    type = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "Type 0x%08x", type);
+    proto_item_append_text(item, " Type %u", type);
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 16, "CSort");
+    offset += 16;
+
+    offset = parse_CRangeCategSpec(tvb, offset, tree, pad_tree, "CRangeCategSpec");
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.25 CAggregSpec */
+static int parse_CAggregSpec(tvbuff_t *tvb, int offset,
+                             proto_tree *parent_tree, proto_tree *pad_tree,
+                             const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+    guint8 type;
+    guint32 ccAlias, idColumn, ulMaxNumToReturn, idRepresentative;
+    const char *alias;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CAggregSpec);
+    va_end(ap);
+
+    type = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "type: %u", type);
+    proto_item_append_text(item, "type: %u", type);
+    offset += 1;
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "padding");
+
+    ccAlias = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "ccAlias: %u", ccAlias);
+    offset += 4;
+
+    alias = tvb_get_unicode_string(tvb, offset, 2*ccAlias, ENC_LITTLE_ENDIAN);
+    proto_tree_add_text(tree, tvb, offset, 2*ccAlias, "Alias: %s", alias);
+    offset += 2*ccAlias;
+
+    idColumn = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "idColumn: %u", idColumn);
+    offset += 4;
+    /* Optional ???
+       ulMaxNumToReturn, idRepresentative;
+    */
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.24 CAggregSet */
+static int parse_CAggregSet(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree,
+                            const char *fmt, ...)
+{
+    guint32 cCount, i;
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CAggregSet);
+    va_end(ap);
+
+    cCount = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", cCount);
+    offset += 4;
+
+    for (i=0; i<cCount; i++) {
+        /* 2.2.1.25 CAggregSpec */
+        offset = parse_CAggregSpec(tvb, offset, tree, pad_tree, "AggregSpecs[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.27 CAggregSortKey */
+static int parse_CAggregSortKey(tvbuff_t *tvb, int offset,
+                                proto_tree *parent_tree, proto_tree *pad_tree,
+                                const char *fmt, ...)
+{
+    guint32 order;
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CAggregSortKey);
+    va_end(ap);
+
+    order = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "order: %u", order);
+    offset += 4;
+
+    offset = parse_CAggregSpec(tvb, offset, tree, pad_tree, "ColumnSpec");
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+
+/* 2.2.1.26 CSortAggregSet */
+static int parse_CSortAggregSet(tvbuff_t *tvb, int offset,
+                                proto_tree *parent_tree, proto_tree *pad_tree,
+                                const char *fmt, ...)
+{
+    guint32 cCount, i;
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CSortAggregSet);
+    va_end(ap);
+
+    cCount = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", cCount);
+    offset += 4;
+
+    for (i=0; i<cCount; i++) {
+        /* 2.2.1.27 CAggregSortKey */
+        offset = parse_CAggregSortKey(tvb, offset, tree, pad_tree, "SortKeys[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+enum CInGroupSortAggregSet_type {
+    GroupIdDefault = 0x00, /* The default for all ranges. */
+    GroupIdMinValue = 0x01, /*The first range in the parent's group.*/
+    GroupIdNull = 0x02, /*The last range in the parent's group.*/
+    GroupIdValue = 0x03,
+};
+
+/* 2.2.1.29 CInGroupSortAggregSet */
+static int parse_CInGroupSortAggregSet(tvbuff_t *tvb, int offset,
+                                       proto_tree *parent_tree, proto_tree *pad_tree,
+                                       const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+    enum CInGroupSortAggregSet_type type;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CInGroupSortAggregSet);
+    va_end(ap);
+
+    type = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "Type: 0x%02x", (unsigned)type);
+    offset += 1;
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "CInGroupSortAggregSet");
+
+    if (type == GroupIdValue) {
+        struct CBaseStorageVariant id;
+        offset = parse_CBaseStorageVariant(tvb, offset, tree, pad_tree, &id, "inGroupId");
+    }
+
+    offset = parse_CSortAggregSet(tvb, offset, tree, pad_tree, "SortAggregSet");
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+
+/* 2.2.1.28 CInGroupSortAggregSets */
+static int parse_CInGroupSortAggregSets(tvbuff_t *tvb, int offset,
+                                        proto_tree *parent_tree, proto_tree *pad_tree,
+                                        const char *fmt, ...)
+{
+    guint32 cCount, i;
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CInGroupSortAggregSets);
+    va_end(ap);
+
+    cCount = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", cCount);
+    offset += 4;
+
+    for (i=0; i<cCount; i++) {
+        /* 2.2.1.29 CInGroupSortAggregSet */
+        offset = parse_CInGroupSortAggregSet(tvb, offset, tree, pad_tree, "SortSets[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.20 CCategorizationSpec */
+int parse_CCategorizationSpec(tvbuff_t *tvb, int offset,
+                              proto_tree *parent_tree, proto_tree *pad_tree,
+                              const char *fmt, ...)
+{
+    guint32 cMaxResults;
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CCategorizationSpec);
+    va_end(ap);
+
+    /* 2.2.1.18  CColumnSet */
+    offset = parse_CColumnSet(tvb, offset, tree, "csColumns");
+
+    /* 2.2.1.21 CCategSpec */
+    offset = parse_CCategSpec(tvb, offset, tree, pad_tree, "Spec");
+
+    /* 2.2.1.24 CAggregSet */
+    offset = parse_CAggregSet(tvb, offset, tree, pad_tree, "AggregSet");
+
+    /* 2.2.1.26 CSortAggregSet */
+    offset = parse_CSortAggregSet(tvb, offset, tree, pad_tree, "SortAggregSet");
+
+    /* 2.2.1.28 CInGroupSortAggregSets */
+    offset = parse_CInGroupSortAggregSets(tvb, offset, tree, pad_tree, "InGroupSortAggregSets");
+
+    cMaxResults = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cMaxResults: %u", cMaxResults);
+    offset += 4;
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
 /* Code to actually dissect the packets */
 
 static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
@@ -1258,7 +1617,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
     if (in) {
         proto_item *ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
         proto_tree *pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
-        guint8 CColumnSetPresent, CRestrictionPresent, CSortSetPresent;
+        guint8 CColumnSetPresent, CRestrictionPresent, CSortSetPresent, CCategorizationSetPresent;
         guint32 size = tvb_get_letohl(tvb, offset);
         proto_tree_add_text(tree, tvb, offset, 4, "size");
         proto_tree_add_text(tree, tvb, offset, size, "ALL");
@@ -1305,6 +1664,22 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
             count = tvb_get_letohl(tvb, offset);
             proto_tree_add_text(tree, tvb, offset, 4 + 16*count, "CSortSet: count %u", count);
             offset += (4 + 16*count);
+        }
+
+        CCategorizationSetPresent = tvb_get_guint8(tvb, offset);
+        proto_tree_add_text(tree, tvb, offset, 1, "CCategorizationSetPresent: %s", CCategorizationSetPresent ? "True" : "False");
+        offset += 1;
+
+        if (CCategorizationSetPresent) {
+            guint32 count, i;
+            offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCCategorizationSetPresent");
+            /* 2.2.1.19 CCategorizationSet */
+            count = tvb_get_letohl(tvb, offset);
+            proto_tree_add_text(tree, tvb, offset, 4, "count: %u", count);
+            offset += 4;
+            for (i=0; i<count; i++) {
+                offset = parse_CCategorizationSpec(tvb, offset, tree, pad_tree, "categories[%u]", i);
+            }
         }
     }
 
@@ -1691,6 +2066,16 @@ proto_register_mswsp(void)
             &ett_CPropertyRestriction,
             &ett_CCoercionRestriction,
             &ett_CContentRestriction,
+            &ett_RANGEBOUNDARY,
+            &ett_CRangeCategSpec,
+            &ett_CCategSpec,
+            &ett_CAggregSpec,
+            &ett_CAggregSet,
+            &ett_CCategorizationSpec,
+            &ett_CAggregSortKey,
+            &ett_CSortAggregSet,
+            &ett_CInGroupSortAggregSet,
+            &ett_CInGroupSortAggregSets,
 	};
 
         int i;
