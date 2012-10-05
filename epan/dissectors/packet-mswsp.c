@@ -108,6 +108,7 @@ static gint ett_CAggregSortKey = -1;
 static gint ett_CSortAggregSet = -1;
 static gint ett_CInGroupSortAggregSet = -1;
 static gint ett_CInGroupSortAggregSets = -1;
+static gint ett_CRowsetProperties = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -257,6 +258,11 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                             proto_tree *pad_tree, const char *fmt, ...);
 
+/* 2.2.1.41 CRowsetProperties */
+static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
+                                   proto_tree *parent_tree, proto_tree *pad_tree,
+                                   const char *fmt, ...);
+
 
 /*
 2.2.1.4 CInternalPropertyRestriction
@@ -277,7 +283,6 @@ static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
 2.2.1.38 CRowSeekAtRatio
 2.2.1.39 CRowSeekByBookmark
 2.2.1.40 CRowSeekNext
-2.2.1.41 CRowsetProperties
 2.2.1.42 CRowVariant
 2.2.1.43 CSortSet
 2.2.1.44 CTableColumn
@@ -1623,6 +1628,42 @@ int parse_CCategorizationSpec(tvbuff_t *tvb, int offset,
     return offset;
 }
 
+int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree _U_,
+                            const char *fmt, ...)
+{
+
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CRowsetProperties);
+    va_end(ap);
+
+    proto_tree_add_text(tree, tvb, offset, 4, "uBooleanOptions");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "ulMaxOpenRows (ignored)");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "ulMemoryUsage (ignored)");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "cMaxResults");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 4, "cCmdTimeout");
+    offset += 4;
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+
+
 /* Code to actually dissect the packets */
 
 static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
@@ -1799,6 +1840,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
                 offset = parse_CCategorizationSpec(tvb, offset, tree, pad_tree, "categories[%u]", i);
             }
         }
+
+        offset = parse_CRowsetProperties(tvb, offset, tree, pad_tree, "RowSetProperties");
     }
 
     return tvb_length(tvb);
@@ -2194,6 +2237,7 @@ proto_register_mswsp(void)
             &ett_CSortAggregSet,
             &ett_CInGroupSortAggregSet,
             &ett_CInGroupSortAggregSets,
+            &ett_CRowsetProperties,
 	};
 
         int i;
