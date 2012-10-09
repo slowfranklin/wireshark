@@ -110,6 +110,7 @@ static gint ett_CInGroupSortAggregSet = -1;
 static gint ett_CInGroupSortAggregSets = -1;
 static gint ett_CRowsetProperties = -1;
 static gint ett_CFullPropSpec = -1;
+static gint ett_CPidMapper = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -258,6 +259,10 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
 /* 2.2.1.32 CDbPropSet */
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                             proto_tree *pad_tree, const char *fmt, ...);
+/* 2.2.1.33 CPidMapper */
+static int parse_CPidMapper(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree,
+                            const char *fmt, ...);
 
 /* 2.2.1.41 CRowsetProperties */
 static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
@@ -276,7 +281,6 @@ static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
 2.2.1.15 CFeedbackRestriction
 2.2.1.16 CRestrictionArray
 2.2.1.19 CCategorizationSet
-2.2.1.33 CPidMapper
 2.2.1.34 CColumnGroupArray
 2.2.1.35 CColumnGroup
 2.2.1.36 SProperty
@@ -1439,6 +1443,7 @@ static int parse_CAggregSpec(tvbuff_t *tvb, int offset,
     /* Optional ???
        ulMaxNumToReturn, idRepresentative;
     */
+    fprintf(stderr, "WARNING, dont know if optional members are present!\n ");
 
     proto_item_set_end(item, tvb, offset);
     return offset;
@@ -1671,7 +1676,37 @@ int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
     return offset;
 }
 
+int parse_CPidMapper(tvbuff_t *tvb, int offset,
+                     proto_tree *parent_tree, proto_tree *pad_tree,
+                     const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+    guint32 count, i;
 
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    tree = proto_item_add_subtree(item, ett_CPidMapper);
+    va_end(ap);
+
+    count = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", count);
+    offset += 4;
+
+    offset = parse_padding(tvb, offset, 8, pad_tree, "CPidMapper_PropSpec");
+
+    for (i=0; i<count; i++) {
+        struct CFullPropSpec v;
+        ZERO_STRUCT(v);
+        offset = parse_padding(tvb, offset, 4, pad_tree,
+                               "CPidMapper_PropSpec[%u]", i); //at begin or end of loop???
+        offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v, "PropSpec[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
 
 /* Code to actually dissect the packets */
 
@@ -1815,7 +1850,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
                 for (i=0; i<count; i++) {
                     struct CRestriction r;
-                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionSet[%d]", i);
+                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionArray[%d]", i);
                 }
             }
             proto_item_set_end(ti, tvb, offset);
@@ -1851,6 +1886,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         }
 
         offset = parse_CRowsetProperties(tvb, offset, tree, pad_tree, "RowSetProperties");
+
+        offset = parse_CPidMapper(tvb, offset, tree, pad_tree, "PidMapper");
     }
 
     return tvb_length(tvb);
@@ -2248,6 +2285,7 @@ proto_register_mswsp(void)
             &ett_CInGroupSortAggregSets,
             &ett_CRowsetProperties,
             &ett_CFullPropSpec,
+            &ett_CPidMapper,
 	};
 
         int i;
