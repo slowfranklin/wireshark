@@ -111,6 +111,8 @@ static gint ett_CInGroupSortAggregSets = -1;
 static gint ett_CRowsetProperties = -1;
 static gint ett_CFullPropSpec = -1;
 static gint ett_CPidMapper = -1;
+static gint ett_CSort = -1;
+static gint ett_CSortSet = -1;
 
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
@@ -185,6 +187,11 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
 static int parse_CReuseWhere(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                              proto_tree *pad_tree _U_, struct CReuseWhere *v,
                              const char *fmt, ...);
+
+/* 2.2.1.10 CSort */
+static int parse_CSort(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                       proto_tree *pad_tree _U_,
+                       const char *fmt, ...);
 
 /* 2.2.1.12 CCoercionRestriction */
 static int parse_CCoercionRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
@@ -269,12 +276,15 @@ static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
                                    proto_tree *parent_tree, proto_tree *pad_tree,
                                    const char *fmt, ...);
 
+/* 2.2.1.43 CSortSet */
+static int parse_CSortSet(tvbuff_t *tvb, int offset,
+                          proto_tree *parent_tree, proto_tree *pad_tree,
+                          const char *fmt, ...);
 
 /*
 2.2.1.4 CInternalPropertyRestriction
 2.2.1.5 CNatLanguageRestriction
 2.2.1.9 CScopeRestriction
-2.2.1.10 CSort
 2.2.1.11 CVectorRestriction
 2.2.1.13 CRelDocRestriction
 2.2.1.14 CProbRestriction
@@ -289,11 +299,74 @@ static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
 2.2.1.39 CRowSeekByBookmark
 2.2.1.40 CRowSeekNext
 2.2.1.42 CRowVariant
-2.2.1.43 CSortSet
 2.2.1.44 CTableColumn
 2.2.1.45 SERIALIZEDPROPERTYVALUE
 2.2.1.46 CCompletionCategSp
 */
+
+static int parse_CSort(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                       proto_tree *pad_tree _U_,
+                       const char *fmt, ...)
+{
+    guint32 col, ord, ind, lcid;
+
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CSort);
+
+    col = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "column: %u", col);
+    offset += 4;
+
+    ord = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "order: %u", ord);
+    offset += 4;
+
+    ind = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "individual: %u", ind);
+    offset += 4;
+
+    lcid = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", lcid);
+    offset += 4;
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+static int parse_CSortSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                          proto_tree *pad_tree,
+                          const char *fmt, ...)
+{
+    guint32 count, i;
+
+    proto_item *item;
+    proto_tree *tree;
+
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CSortSet);
+
+    count = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", count);
+    offset += 4;
+
+    for (i=0; i<count; i++) {
+        offset = parse_CSort(tvb, offset, tree, pad_tree, "sortArray[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
 
 
 static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
@@ -615,9 +688,10 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
     for (i=0; i<v->cNode; i++) {
         struct CRestriction r;
         ZERO_STRUCT(r);
+        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
         offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "paNode[%u]", i);
 
-        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
+//        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
     }
 
     proto_item_set_end(item, tvb, offset);
@@ -1396,8 +1470,7 @@ int parse_CCategSpec(tvbuff_t *tvb, int offset,
     proto_item_append_text(item, " Type %u", type);
     offset += 4;
 
-    proto_tree_add_text(tree, tvb, offset, 16, "CSort");
-    offset += 16;
+    offset = parse_CSort(tvb, offset, tree, pad_tree, "CSort");
 
     offset = parse_CRangeCategSpec(tvb, offset, tree, pad_tree, "CRangeCategSpec");
 
@@ -1860,13 +1933,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         proto_tree_add_text(tree, tvb, offset, 1, "CSortSetPresent: %s", CSortSetPresent ? "True" : "False");
         offset += 1;
         if (CSortSetPresent) {
-            guint32 count;
             offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCSortSetPresent");
-            /*2.2.1.43 CSortSet */
-            /*2.2.1.10 CSort 16Bytes */
-            count = tvb_get_letohl(tvb, offset);
-            proto_tree_add_text(tree, tvb, offset, 4 + 16*count, "CSortSet: count %u", count);
-            offset += (4 + 16*count);
+            offset = parse_CSortSet(tvb, offset, tree, pad_tree, "SortSet");
         }
 
         CCategorizationSetPresent = tvb_get_guint8(tvb, offset);
@@ -2286,6 +2354,8 @@ proto_register_mswsp(void)
             &ett_CRowsetProperties,
             &ett_CFullPropSpec,
             &ett_CPidMapper,
+            &ett_CSort,
+            &ett_CSortSet,
 	};
 
         int i;
