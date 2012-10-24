@@ -177,6 +177,7 @@ static const value_string StorageGuid_IDS[] = {
     {0x0f, "System.DateCreated"},
     {0x10, "System.DateAccessed"},
     {0x12, "AllocSize"},
+    {0x13, "Content"},
     {0x14, "ShortFilename"},
     {0, NULL}
 };
