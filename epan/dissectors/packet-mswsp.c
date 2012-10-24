@@ -590,7 +590,7 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
                               struct CRestriction *v, const char *fmt, ...)
 {
     proto_tree *tree;
-    proto_item *item, *ti;
+    proto_item *item;
     const char *str;
     va_list ap;
 
@@ -603,13 +603,13 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
 
     v->ulType = tvb_get_letohl(tvb, offset);
     str = val_to_str(v->ulType, RT_VALS, "0x%.8x");
-    ti = proto_tree_add_text(tree, tvb, offset, 4, "ulType: %s (0x%.8x)",
+    proto_tree_add_text(tree, tvb, offset, 4, "ulType: %s (0x%.8x)",
                              str[0] == '0' ? "" : str, v->ulType);
     proto_item_append_text(item, " Type: %s", str);
     offset += 4;
 
     v->Weight = tvb_get_letohl(tvb, offset);
-    ti = proto_tree_add_text(tree, tvb, offset, 4, "Weight: %u", v->ulType);
+    proto_tree_add_text(tree, tvb, offset, 4, "Weight: %u", v->ulType);
     offset += 4;
 
     switch(v->ulType) {
@@ -673,7 +673,7 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
                                   const char *fmt, ...)
 {
     proto_tree *tree;
-    proto_item *item, *ti;
+    proto_item *item;
     unsigned i;
     va_list ap;
 
@@ -683,7 +683,7 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
     tree = proto_item_add_subtree(item, ett_CNodeRestriction);
 
     v->cNode = tvb_get_letohl(tvb, offset);
-    ti = proto_tree_add_text(tree, tvb, offset, 4, "cNode: %u", v->cNode);
+    proto_tree_add_text(tree, tvb, offset, 4, "cNode: %u", v->cNode);
     offset += 4;
     for (i=0; i<v->cNode; i++) {
         struct CRestriction r;
