@@ -1965,6 +1965,10 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         offset += 1;
         if (CSortSetPresent) {
             offset = parse_padding(tvb, offset, 4, tree, "paddingCSortSetPresent");
+
+            proto_tree_add_text(tree, tvb, offset, 8, "XXX");
+            offset += 8;
+
             offset = parse_CSortSet(tvb, offset, tree, pad_tree, "SortSet");
         }
 
