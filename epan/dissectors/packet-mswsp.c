@@ -2436,14 +2436,35 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
     smb_info_t *si = pinfo->private_data;
     gboolean in = si->request;
 
-    fprintf(stderr, "dissect_mswsp_smb %d <> %d : op %02x %s %s type: %d\n",
-            pinfo->fd->num, si->tid,
-            si->cmd,
-            pinfo->dcerpc_procedure_name ? pinfo->dcerpc_procedure_name : "<NULL>",
-            in ? "Request" : "Response", si->tid);
+    smb_transact_info_t *tri = (si->sip->extra_info_type == SMB_EI_TRI) ? si->sip->extra_info : NULL;
+    smb_fid_info_t *fid_info = NULL;
+    GSList *iter;
 
+    fprintf(stderr, "dissect_mswsp_smb %s frame: %d tid: %d op: %02x ",
+            in ? "Request" : "Response",
+            pinfo->fd->num, si->tid, si->cmd);
 
-    if (strcmp(pinfo->dcerpc_procedure_name, "File: MsFteWds") != 0) {
+    if (tri == NULL) {
+        fprintf(stderr, " extra_info_type: %d\n", si->sip->extra_info_type);
+        return 0;
+    }
+
+    for (iter = si->ct->GSL_fid_info; iter; iter = g_slist_next(iter)) {
+        smb_fid_info_t *info = iter->data;
+        if ((info->tid == si->tid) && (info->fid == tri->fid)) {
+            fid_info = info;
+            break;
+        }
+    }
+
+    if ((fid_info->fsi == NULL) || (fid_info->fsi->filename == NULL)) {
+        fprintf(stderr, " no %s\n", fid_info->fsi ? "filename" : "fsi");
+        return 0;
+    }
+
+    fprintf(stderr, " file: %s\n", fid_info->fsi->filename);
+
+    if (strcasecmp(fid_info->fsi->filename, "\\MsFteWds") != 0) {
         return 0;
     }
 
