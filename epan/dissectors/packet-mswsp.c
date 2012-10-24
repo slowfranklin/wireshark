@@ -2205,7 +2205,8 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
     hdr.status = tvb_get_letohl(tvb, 4);
     hdr.checksum = tvb_get_letohl(tvb, 8);
 
-    col_set_str(pinfo->cinfo, COL_PROTOCOL, "MS-WSP");
+    /* col_set_str(pinfo->cinfo, COL_PROTOCOL, "MS-WSP"); */
+    col_append_str(pinfo->cinfo, COL_PROTOCOL, " WSP");
 /*    col_clear(pinfo->cinfo, COL_INFO); */
 
     col_set_str(pinfo->cinfo, COL_INFO, "WSP ");
