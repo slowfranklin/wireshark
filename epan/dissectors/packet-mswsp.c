@@ -182,6 +182,28 @@ static const value_string StorageGuid_IDS[] = {
     {0, NULL}
 };
 
+static const value_string DocPropSetGuid_IDS[] = {
+    {0x02, "System.Title"},
+    {0x03, "System.Subject"},
+    {0x04, "System.Author"},
+    {0x05, "System.Keywords"},
+    {0x06, "System.Comment"},
+    {0x07, "DocTemplate"},
+    {0x08, "System.Document.LastAuthor"},
+    {0x09, "System.Document.RevisionNumber"},
+    {0x0a, "System.Document.EditTime???"},
+    {0x0b, "System.Document.DatePrinted"},
+    {0x0c, "System.Document.DateCreated"},
+    {0x0d, "System.Document.DateSaved"},
+    {0x0e, "System.Document.PageCount"},
+    {0x0f, "System.Document.WordCount"},
+    {0x10, "System.Document.CharacterCount"},
+    {0x11, "DocThumbnail"},
+    {0x12, "System.ApplicationName"},
+    {0, NULL}
+};
+
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -198,6 +220,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xB725F130, 0x47ef, 0x101a, {0xA5, 0xF1, 0x02, 0x60, 0x8C, 0x9E, 0xEB, 0xAC}},
      "Storage", "Storage Property Set",
      StorageGuid_IDS},
+    {{0xF29F85E0, 0x4FF9, 0x1068, {0xAB, 0x91, 0x08, 0x00, 0x2B, 0x27, 0xB3, 0xD9}},
+      "Document", "Document Property Set",
+      DocPropSetGuid_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
