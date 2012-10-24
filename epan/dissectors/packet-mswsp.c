@@ -1988,6 +1988,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
             }
         }
 
+        offset = parse_padding(tvb, offset, 4, tree, "XXXX"); //XXX
+
         offset = parse_CRowsetProperties(tvb, offset, tree, pad_tree, "RowSetProperties");
 
         offset = parse_CPidMapper(tvb, offset, tree, pad_tree, "PidMapper");
