@@ -178,6 +178,7 @@ static const value_string QueryGuid_IDS[] = {
 static const value_string StorageGuid_IDS[] = {
     {0x02, "System.ItemFolderNameDisplay"},
     {0x03, "ClassId"},
+    {0x04, "System.ItemTypeText"},
     {0x08, "FileIndex"},
     {0x09, "USN"},
     {0x0a, "System.ItemNameDisplay"},
@@ -188,8 +189,10 @@ static const value_string StorageGuid_IDS[] = {
     {0x0f, "System.DateCreated"},
     {0x10, "System.DateAccessed"},
     {0x12, "AllocSize"},
-    {0x13, "Content"},
+    {0x13, "System.Search.Contents"},
     {0x14, "ShortFilename"},
+    {0x15, "FileFRN"},
+    {0x16, "Scope"},
     {0, NULL}
 };
 
