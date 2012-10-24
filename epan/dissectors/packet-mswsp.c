@@ -363,7 +363,7 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     offset += 4;
 
     for (i=0; i<count; i++) {
-        offset = parse_padding(tvb, offset, 4, pad_tree, "sortArray[%u]", i);
+        offset = parse_padding(tvb, offset, 4, tree, "padding_sortArray[%u]", i);
         offset = parse_CSort(tvb, offset, tree, pad_tree, "sortArray[%u]", i);
     }
 
@@ -685,6 +685,8 @@ static int parse_CRestrictionArray(tvbuff_t *tvb, int offset, proto_tree *parent
     va_end(ap);
     tree = proto_item_add_subtree(item, ett_CRestrictionArray);
 
+    pad_tree = tree; //XXX
+
     count = tvb_get_guint8(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 1, "count: %u", count);
     offset += 1;
@@ -723,11 +725,13 @@ static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
     v->cNode = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "cNode: %u", v->cNode);
     offset += 4;
+
     for (i=0; i<v->cNode; i++) {
         struct CRestriction r;
         ZERO_STRUCT(r);
-        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
+//        offset = parse_padding(tvb, offset, 4, tree, "padding_paNode[%u]", i); /*at begin or end of loop ????*/
         offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "paNode[%u]", i);
+        offset = parse_padding(tvb, offset, 4, tree, "padding_paNode[%u]", i); /*at begin or end of loop ????*/
 
 //        offset = parse_padding(tvb, offset, 4, pad_tree, "paNode[%u]", i); /*at begin or end of loop ????*/
     }
@@ -1960,7 +1964,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         proto_tree_add_text(tree, tvb, offset, 1, "CSortSetPresent: %s", CSortSetPresent ? "True" : "False");
         offset += 1;
         if (CSortSetPresent) {
-            offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCSortSetPresent");
+            offset = parse_padding(tvb, offset, 4, tree, "paddingCSortSetPresent");
             offset = parse_CSortSet(tvb, offset, tree, pad_tree, "SortSet");
         }
 
