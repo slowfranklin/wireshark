@@ -558,7 +558,7 @@ static int parse_CReuseWhere(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     v->whereId = tvb_get_letohl(tvb, offset);
     offset += 4;
 
-    proto_item_append_text(item, "Id: %u", v->whereId);
+    proto_item_append_text(item, " Id: %u", v->whereId);
 
     proto_item_set_end(item, tvb, offset);
     return offset;
