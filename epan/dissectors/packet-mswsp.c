@@ -197,6 +197,9 @@ static int parse_CSort(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
 static int parse_CCoercionRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                                       proto_tree *pad_tree, struct CCoercionRestriction *v,
                                       const char *fmt, ...);
+/* 2.2.1.16 CRestrictionArray */
+static int parse_CRestrictionArray(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                                   const char *fmt, ...);
 
 /* 2.2.1.17 CRestriction */
 static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
@@ -289,7 +292,6 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset,
 2.2.1.13 CRelDocRestriction
 2.2.1.14 CProbRestriction
 2.2.1.15 CFeedbackRestriction
-2.2.1.16 CRestrictionArray
 2.2.1.19 CCategorizationSet
 2.2.1.34 CColumnGroupArray
 2.2.1.35 CColumnGroup
@@ -664,6 +666,41 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
         proto_item_append_text(item, " Not supported!");
     }
 
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+static int parse_CRestrictionArray(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
+                                   const char *fmt, ...)
+{
+    guint8 present, count;
+
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CRestrictionArray);
+
+    count = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "count: %u", count);
+    offset += 1;
+
+    present = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "present: %u", present);
+    offset += 1;
+
+    if (present) {
+        unsigned i;
+        offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCRestrictionPresent");
+
+        for (i=0; i<count; i++) {
+            struct CRestriction r;
+            offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "Restriction[%d]", i);
+        }
+    }
     proto_item_set_end(item, tvb, offset);
     return offset;
 }
@@ -1912,21 +1949,7 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         proto_tree_add_text(tree, tvb, offset, 1, "CRestrictionPresent: %s", CColumnSetPresent ? "True" : "False");
         offset += 1;
         if (CRestrictionPresent) {
-            guint8 count, present;
-            int i;
-            count = tvb_get_guint8(tvb, offset);
-            present = tvb_get_guint8(tvb, offset);
-            ti = proto_tree_add_text(tree, tvb, offset, 0, "CRestrictionSet: count %d", count);
-            offset += 2;
-            if (present) {
-                offset = parse_padding(tvb, offset, 4, pad_tree, "paddingCRestrictionPresent");
-
-                for (i=0; i<count; i++) {
-                    struct CRestriction r;
-                    offset = parse_CRestriction(tvb, offset, tree, pad_tree, &r, "CRestrictionArray[%d]", i);
-                }
-            }
-            proto_item_set_end(ti, tvb, offset);
+            offset = parse_CRestrictionArray(tvb, offset, tree, pad_tree, "RestrictionArray");
         }
 
         CSortSetPresent = tvb_get_guint8(tvb, offset);
