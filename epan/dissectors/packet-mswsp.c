@@ -1757,7 +1757,7 @@ int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
                             proto_tree *parent_tree, proto_tree *pad_tree _U_,
                             const char *fmt, ...)
 {
-
+    guint32 opt, maxres, timeout;
     proto_item *item;
     proto_tree *tree;
 
@@ -1768,7 +1768,8 @@ int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
     tree = proto_item_add_subtree(item, ett_CRowsetProperties);
     va_end(ap);
 
-    proto_tree_add_text(tree, tvb, offset, 4, "uBooleanOptions");
+    opt = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "uBooleanOptions: 0x%08x", opt);
     offset += 4;
 
     proto_tree_add_text(tree, tvb, offset, 4, "ulMaxOpenRows (ignored)");
@@ -1777,10 +1778,12 @@ int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
     proto_tree_add_text(tree, tvb, offset, 4, "ulMemoryUsage (ignored)");
     offset += 4;
 
-    proto_tree_add_text(tree, tvb, offset, 4, "cMaxResults");
+    maxres = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cMaxResults: %u", maxres);
     offset += 4;
 
-    proto_tree_add_text(tree, tvb, offset, 4, "cCmdTimeout");
+    timeout = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cCmdTimeout: %u", timeout);
     offset += 4;
 
     proto_item_set_end(item, tvb, offset);
