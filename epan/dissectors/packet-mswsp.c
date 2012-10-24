@@ -363,6 +363,7 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     offset += 4;
 
     for (i=0; i<count; i++) {
+        offset = parse_padding(tvb, offset, 4, pad_tree, "sortArray[%u]", i);
         offset = parse_CSort(tvb, offset, tree, pad_tree, "sortArray[%u]", i);
     }
 
