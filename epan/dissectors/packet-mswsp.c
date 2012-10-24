@@ -114,6 +114,83 @@ static gint ett_CPidMapper = -1;
 static gint ett_CSort = -1;
 static gint ett_CSortSet = -1;
 
+/******************************************************************************/
+struct GuidPropertySet {
+    e_guid_t guid;
+    const char *def;
+    const char *desc;
+    const value_string *id_map;
+};
+
+/* 2.2.1.31.1 */
+static const value_string DBPROPSET_FSCIFRMWRK_EXT_IDS[] = {
+    {0x02, "DBPROP_CI_CATALOG_NAME"},
+    {0x03, "DBPROP_CI_INCLUDE_SCOPES"},
+    {0x04, "DBPROP_CI_SCOPE_FLAGS"},
+    {0x07, "DBPROP_CI_QUERY_TYPE"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_QUERYEXT_IDS[] = {
+    {0x02, "DBPROP_USECONTENTINDEX"},
+    {0x03, "DBPROP_DEFERNONINDEXEDTRIMMING"},
+    {0x04, "DBPROP_USEEXTENDEDDBTYPES"},
+    {0x05, "DBPROP_IGNORENOISEONLYCLAUSES"},
+    {0x06, "DBPROP_GENERICOPTIONS_STRING"},
+    {0x07, "DBPROP_FIRSTROWS"},
+    {0x08, "DBPROP_DEFERCATALOGVERIFICATION"},
+    {0x0a, "DBPROP_GENERATEPARSETREE"},
+    {0x0c, "DBPROP_FREETEXTANYTERM"},
+    {0x0d, "DBPROP_FREETEXTUSESTEMMING"},
+    {0x0e, "DBPROP_IGNORESBRI"},
+    {0x10, "DBPROP_ENABLEROWSETEVENTS"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_CIFRMWRKCORE_EXT_IDS[] = {
+    {0x02, "DBPROP_MACHINE"},
+    {0x03, "DBPROP_CLIENT_CLSID"},
+    {0, NULL}
+};
+
+static const value_string DBPROPSET_MSIDXS_ROWSETEXT_IDS[] = {
+    {0x02, "MSIDXSPROP_ROWSETQUERYSTATUS"},
+    {0x03, "MSIDXSPROP_COMMAND_LOCALE_STRING"},
+    {0x04, "MSIDXSPROP_QUERY_RESTRICTION"},
+    {0x05, "MSIDXSPROP_PARSE_TREE"},
+    {0x06, "MSIDXSPROP_MAX_RANK"},
+    {0x07, "MSIDXSPROP_RESULTS_FOUND"},
+    {0, NULL}
+};
+
+static struct GuidPropertySet GuidPropertySet[] = {
+    {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
+     "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
+     DBPROPSET_FSCIFRMWRK_EXT_IDS},
+    {{0xa7ac77ed, 0xf8d7, 0x11ce, {0xa7, 0x98, 0x00, 0x20, 0xf8, 0x00, 0x80, 0x25}},
+     "DBPROPSET_QUERYEXT", "Query extension",
+     DBPROPSET_QUERYEXT_IDS},
+    {{0xafafaca5, 0xb5d1, 0x11d0, {0x8c, 0x62, 0x00, 0xc0, 0x4f, 0xc2, 0xdb, 0x8d}},
+     "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core",
+     DBPROPSET_CIFRMWRKCORE_EXT_IDS},
+    {{0xAA6EE6B0, 0xE828, 0x11D0, {0xB2, 0x3E, 0x00, 0xAA, 0x00, 0x47, 0xFC, 0x01}},
+      "DBPROPSET_MSIDXS_ROWSETEXT", "???",
+     DBPROPSET_MSIDXS_ROWSETEXT_IDS},
+};
+
+static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
+{
+    unsigned i;
+    for (i=0; i<array_length(GuidPropertySet); i++) {
+        if (guid_cmp(&GuidPropertySet[i].guid, guid) == 0) {
+            return &GuidPropertySet[i];
+        }
+    }
+    return NULL;
+}
+
+/******************************************************************************/
+
 static int parse_padding(tvbuff_t *tvb, int offset, int alignment, proto_tree *pad_tree, const char *fmt, ...)
 {
     if (offset % alignment) {
@@ -261,7 +338,6 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset,
                           proto_tree *parent_tree, proto_tree *pad_tree, const char *text);
 
 /* 2.2.1.31 CDbProp */
-struct GuidPropertySet;
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                          proto_tree *pad_tree, struct GuidPropertySet *propset,
                          const char *fmt, ...);
@@ -1184,13 +1260,6 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
     return offset;
 }
 
-struct GuidPropertySet {
-    e_guid_t guid;
-    const char *def;
-    const char *desc;
-    const value_string *id_map;
-};
-
 static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                          proto_tree *pad_tree, struct GuidPropertySet *propset,
                          const char *fmt, ...)
@@ -1233,73 +1302,6 @@ static int parse_CDbProp(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     proto_item_set_end(item, tvb, offset);
 
     return offset;
-}
-
-/* 2.2.1.31.1 */
-static const value_string DBPROPSET_FSCIFRMWRK_EXT_IDS[] = {
-    {0x02, "DBPROP_CI_CATALOG_NAME"},
-    {0x03, "DBPROP_CI_INCLUDE_SCOPES"},
-    {0x04, "DBPROP_CI_SCOPE_FLAGS"},
-    {0x07, "DBPROP_CI_QUERY_TYPE"},
-    {0, NULL}
-};
-
-static const value_string DBPROPSET_QUERYEXT_IDS[] = {
-    {0x02, "DBPROP_USECONTENTINDEX"},
-    {0x03, "DBPROP_DEFERNONINDEXEDTRIMMING"},
-    {0x04, "DBPROP_USEEXTENDEDDBTYPES"},
-    {0x05, "DBPROP_IGNORENOISEONLYCLAUSES"},
-    {0x06, "DBPROP_GENERICOPTIONS_STRING"},
-    {0x07, "DBPROP_FIRSTROWS"},
-    {0x08, "DBPROP_DEFERCATALOGVERIFICATION"},
-    {0x0a, "DBPROP_GENERATEPARSETREE"},
-    {0x0c, "DBPROP_FREETEXTANYTERM"},
-    {0x0d, "DBPROP_FREETEXTUSESTEMMING"},
-    {0x0e, "DBPROP_IGNORESBRI"},
-    {0x10, "DBPROP_ENABLEROWSETEVENTS"},
-    {0, NULL}
-};
-
-static const value_string DBPROPSET_CIFRMWRKCORE_EXT_IDS[] = {
-    {0x02, "DBPROP_MACHINE"},
-    {0x03, "DBPROP_CLIENT_CLSID"},
-    {0, NULL}
-};
-
-static const value_string DBPROPSET_MSIDXS_ROWSETEXT_IDS[] = {
-    {0x02, "MSIDXSPROP_ROWSETQUERYSTATUS"},
-    {0x03, "MSIDXSPROP_COMMAND_LOCALE_STRING"},
-    {0x04, "MSIDXSPROP_QUERY_RESTRICTION"},
-    {0x05, "MSIDXSPROP_PARSE_TREE"},
-    {0x06, "MSIDXSPROP_MAX_RANK"},
-    {0x07, "MSIDXSPROP_RESULTS_FOUND"},
-    {0, NULL}
-};
-
-static struct GuidPropertySet GuidPropertySet[] = {
-    {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
-     "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
-     DBPROPSET_FSCIFRMWRK_EXT_IDS},
-    {{0xa7ac77ed, 0xf8d7, 0x11ce, {0xa7, 0x98, 0x00, 0x20, 0xf8, 0x00, 0x80, 0x25}},
-     "DBPROPSET_QUERYEXT", "Query extension",
-     DBPROPSET_QUERYEXT_IDS},
-    {{0xafafaca5, 0xb5d1, 0x11d0, {0x8c, 0x62, 0x00, 0xc0, 0x4f, 0xc2, 0xdb, 0x8d}},
-     "DBPROPSET_CIFRMWRKCORE_EXT", "Content index framework core",
-     DBPROPSET_CIFRMWRKCORE_EXT_IDS},
-    {{0xAA6EE6B0, 0xE828, 0x11D0, {0xB2, 0x3E, 0x00, 0xAA, 0x00, 0x47, 0xFC, 0x01}},
-      "DBPROPSET_MSIDXS_ROWSETEXT", "???",
-     DBPROPSET_MSIDXS_ROWSETEXT_IDS},
-};
-
-static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
-{
-    unsigned i;
-    for (i=0; i<array_length(GuidPropertySet); i++) {
-        if (guid_cmp(&GuidPropertySet[i].guid, guid) == 0) {
-            return &GuidPropertySet[i];
-        }
-    }
-    return NULL;
 }
 
 static int parse_CDbPropSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
