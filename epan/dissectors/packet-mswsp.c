@@ -458,7 +458,8 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
         {0, NULL}
     };
 
-    const char *guid_str;
+    struct GuidPropertySet *pset;
+
     proto_item *item;
     proto_tree *tree;
     va_list ap;
@@ -471,8 +472,14 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
     offset = parse_padding(tvb, offset, 8, pad_tree, "paddingPropSet");
 
     offset = parse_guid(tvb, offset, tree, &v->guid, "GUID");
-    guid_str =  guids_resolve_guid_to_str(&v->guid );
-    proto_item_append_text(item, " {%s}", guid_str);
+    pset = GuidPropertySet_find_guid(&v->guid);
+
+    if (pset) {
+        proto_item_append_text(item, " \"%s\" (%s)", pset->desc, pset->def);
+    } else {
+        const char *guid_str = guid_to_str(&v->guid);
+        proto_item_append_text(item, " {%s}", guid_str);
+    }
 
     v->kind = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulKind: %s ", val_to_str(v->kind, KIND, "(Unknown: 0x%x)"));
@@ -489,7 +496,12 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
         proto_item_append_text(item, " \"%s\"", v->u.name);
         offset += len;
     } else if (v->kind == PRSPEC_PROPID) {
-        proto_item_append_text(item, " 0x%08x", v->u.propid);
+        if (pset && pset->id_map) {
+            const char *str = val_to_str(v->u.propid, pset->id_map, "0x%08x");
+            proto_item_append_text(item, " Id: %s", str);
+        } else {
+            proto_item_append_text(item, " 0x%08x", v->u.propid);
+        }
     } else {
         proto_item_append_text(item, "<INVALID>");
     }
