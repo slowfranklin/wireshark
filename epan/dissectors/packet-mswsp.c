@@ -163,6 +163,17 @@ static const value_string DBPROPSET_MSIDXS_ROWSETEXT_IDS[] = {
     {0, NULL}
 };
 
+/* 2.2.5.1 */
+static const value_string QueryGuid_IDS[] = {
+    {0x02, "RankVector"},
+    {0x03, "System.Search.Rank"},
+    {0x04, "System.Search.HitCount"},
+    {0x05, "System.Search.EntryID"},
+    {0x06, "All"},
+    {0x09, "System.ItemURL"},
+    {0, NULL}
+};
+
 /* 2.2.5.2 */
 static const value_string StorageGuid_IDS[] = {
     {0x02, "System.ItemFolderNameDisplay"},
@@ -203,7 +214,6 @@ static const value_string DocPropSetGuid_IDS[] = {
     {0, NULL}
 };
 
-
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -223,6 +233,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xF29F85E0, 0x4FF9, 0x1068, {0xAB, 0x91, 0x08, 0x00, 0x2B, 0x27, 0xB3, 0xD9}},
       "Document", "Document Property Set",
       DocPropSetGuid_IDS},
+    {{0x49691C90, 0x7E17, 0x101A, {0xA9, 0x1C, 0x08, 0x00, 0x2B, 0x2E, 0xCD, 0xA9}},
+     "Query", "Query Property Set",
+     QueryGuid_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
