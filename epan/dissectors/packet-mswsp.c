@@ -163,6 +163,24 @@ static const value_string DBPROPSET_MSIDXS_ROWSETEXT_IDS[] = {
     {0, NULL}
 };
 
+/* 2.2.5.2 */
+static const value_string StorageGuid_IDS[] = {
+    {0x02, "System.ItemFolderNameDisplay"},
+    {0x03, "ClassId"},
+    {0x08, "FileIndex"},
+    {0x09, "USN"},
+    {0x0a, "System.ItemNameDisplay"},
+    {0x0b, "Path"},
+    {0x0c, "System.Size"},
+    {0x0d, "System.FileAttributes"},
+    {0x0e, "System.DateModified"},
+    {0x0f, "System.DateCreated"},
+    {0x10, "System.DateAccessed"},
+    {0x12, "AllocSize"},
+    {0x14, "ShortFilename"},
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -176,6 +194,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xAA6EE6B0, 0xE828, 0x11D0, {0xB2, 0x3E, 0x00, 0xAA, 0x00, 0x47, 0xFC, 0x01}},
       "DBPROPSET_MSIDXS_ROWSETEXT", "???",
      DBPROPSET_MSIDXS_ROWSETEXT_IDS},
+    {{0xB725F130, 0x47ef, 0x101a, {0xA5, 0xF1, 0x02, 0x60, 0x8C, 0x9E, 0xEB, 0xAC}},
+     "Storage", "Storage Property Set",
+     StorageGuid_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
