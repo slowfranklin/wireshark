@@ -556,6 +556,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
     };
 
     struct GuidPropertySet *pset;
+    const char *id_str, *guid_str;
 
     proto_item *item;
     proto_tree *tree;
@@ -571,13 +572,6 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
     offset = parse_guid(tvb, offset, tree, &v->guid, "GUID");
     pset = GuidPropertySet_find_guid(&v->guid);
 
-    if (pset) {
-        proto_item_append_text(item, " \"%s\" (%s)", pset->desc, pset->def);
-    } else {
-        const char *guid_str = guid_to_str(&v->guid);
-        proto_item_append_text(item, " {%s}", guid_str);
-    }
-
     v->kind = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulKind: %s ", val_to_str(v->kind, KIND, "(Unknown: 0x%x)"));
     offset += 4;
@@ -590,17 +584,29 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
         int len = 2*v->u.propid;
         v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
-        proto_item_append_text(item, " \"%s\"", v->u.name);
         offset += len;
-    } else if (v->kind == PRSPEC_PROPID) {
-        if (pset && pset->id_map) {
-            const char *str = val_to_str(v->u.propid, pset->id_map, "0x%08x");
-            proto_item_append_text(item, " Id: %s", str);
-        } else {
-            proto_item_append_text(item, " 0x%08x", v->u.propid);
-        }
+    }
+
+    id_str = pset ? match_strval(v->u.propid, pset->id_map) : NULL;
+
+    if (id_str) {
+        proto_item_append_text(item, ": %s", id_str);
     } else {
-        proto_item_append_text(item, "<INVALID>");
+        guid_str = guids_get_guid_name(&v->guid);
+        if (guid_str) {
+            proto_item_append_text(item, ": \"%s\"", guid_str);
+        } else {
+            guid_str = guid_to_str(&v->guid);
+            proto_item_append_text(item, ": {%s}", guid_str);
+        }
+
+        if (v->kind == PRSPEC_LPWSTR) {
+            proto_item_append_text(item, " \"%s\"", v->u.name);
+        } else if (v->kind == PRSPEC_PROPID) {
+            proto_item_append_text(item, " 0x%08x", v->u.propid);
+        } else {
+            proto_item_append_text(item, " <INVALID>");
+        }
     }
 
     proto_item_set_end(item, tvb, offset);
