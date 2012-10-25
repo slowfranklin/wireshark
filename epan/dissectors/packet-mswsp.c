@@ -217,6 +217,18 @@ static const value_string DocPropSetGuid_IDS[] = {
     {0, NULL}
 };
 
+static const value_string ShellDetails_IDS[] = {
+    { 5, "System.ComputerName"},
+    { 8, "System.ItemPathDisplayNarrow"},
+    { 9, "PercivedType"},
+    {11, "System.ItemType"},
+    {12, "FileCount"},
+    {14, "TotalFileSize"},
+    {24, "System.ParsingName"},
+    {25, "System.SFGAOFlags"},
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -239,6 +251,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x49691C90, 0x7E17, 0x101A, {0xA9, 0x1C, 0x08, 0x00, 0x2B, 0x2E, 0xCD, 0xA9}},
      "Query", "Query Property Set",
      QueryGuid_IDS},
+    {{0x28636AA6, 0x953D, 0x11D2, {0xB5, 0xD6, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0}},
+     "ShellDetails", "Shell Details Property Set",
+    ShellDetails_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
