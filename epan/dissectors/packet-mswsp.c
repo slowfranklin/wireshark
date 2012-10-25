@@ -244,6 +244,10 @@ static const value_string PropSet2_IDS[] = {
     {0, NULL}
 };
 
+static const value_string MusicGuid_IDS[] = {
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -275,6 +279,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x1E3EE840, 0xBC2B, 0x476C, {0x82, 0x37, 0x2A, 0xCD, 0x1A, 0x83, 0x9B, 0x22}},
      "???", "Unspecified Property Set",
      PropSet2_IDS},
+    {{0x56A3372E, 0xCE9C, 0x11d2, {0x9F, 0x0E, 0x00, 0x60, 0x97, 0xC6, 0x86, 0xF6}},
+     "Music", "Music Property Set",
+     MusicGuid_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
