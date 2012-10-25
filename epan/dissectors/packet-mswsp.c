@@ -33,6 +33,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include <sys/types.h>
+#include <unistd.h>
+
+
 #include <glib.h>
 
 #include <epan/packet.h>
@@ -2198,13 +2202,33 @@ static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, prot
     return tvb_length(tvb);
 }
 
-
-int
-dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+static void debug_frame(int frame)
 {
     static const char *dbg_wait = NULL;
     static int wait_frame = -1;
 
+    if (dbg_wait == NULL) {
+        dbg_wait = getenv("DBG_FRAME");
+        if (dbg_wait == NULL) {
+            dbg_wait = "no";
+        } else {
+            wait_frame = atoi(dbg_wait);
+        }
+    }
+
+    if (frame == wait_frame) {
+        static volatile gboolean wait = 1;
+        fprintf(stderr, "waiting for debugger with pid: %u\n", getpid());
+        while(wait) {
+            sleep(1);
+        }
+    }
+
+}
+
+int
+dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
+{
     proto_tree *mswsp_tree = NULL;
     struct {
         guint32 msg;
@@ -2216,22 +2240,6 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 
     if (tvb_length(tvb) < 16) {
         return 0;
-    }
-
-    if (dbg_wait == NULL) {
-        dbg_wait = getenv("DBG_FRAME");
-        if (dbg_wait == NULL) {
-            dbg_wait = "no";
-        } else {
-            wait_frame = atoi(dbg_wait);
-        }
-    }
-
-    if ((int)pinfo->fd->num == wait_frame) {
-        static volatile gboolean wait = 1;
-        while(wait) {
-            sleep(1);
-        }
     }
 
     hdr.msg = tvb_get_letohl(tvb, 0);
@@ -2542,6 +2550,8 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
     smb_fid_info_t *fid_info = NULL;
     GSList *iter;
 
+    debug_frame((int)pinfo->fd->num);
+
     fprintf(stderr, "dissect_mswsp_smb %s frame: %d tid: %d op: %02x ",
             in ? "Request" : "Response",
             pinfo->fd->num, si->tid, si->cmd);
@@ -2580,6 +2590,8 @@ static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tre
 
 //si->tree->share_type == SMB2_SHARE_TYPE_PIPE
 //si->tree->connect_frame
+
+    debug_frame((int)pinfo->fd->num);
 
     fprintf(stderr, "dissect_mswsp %d <> %d : op %02x %s %s type: %d extra_file: %s\n",
             pinfo->fd->num, si->tree ? (int)si->tree->connect_frame : -1,
