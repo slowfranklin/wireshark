@@ -234,6 +234,12 @@ static const value_string ShellDetails_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet1_IDS[] = {
+    {100, "System.ThumbnailCacheId"},
+    {0, NULL}
+};
+
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -259,6 +265,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x28636AA6, 0x953D, 0x11D2, {0xB5, 0xD6, 0x00, 0xC0, 0x4F, 0xD9, 0x18, 0xD0}},
      "ShellDetails", "Shell Details Property Set",
     ShellDetails_IDS},
+    {{0x446D16B1, 0x8DAD, 0x4870, {0xA7, 0x48, 0x40, 0x2E, 0xA4, 0x3D, 0x78, 0x8C}},
+     "???", "Unspecified Property Set",
+     PropSet1_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
