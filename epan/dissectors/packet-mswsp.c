@@ -2569,8 +2569,8 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
         }
     }
 
-    if ((fid_info->fsi == NULL) || (fid_info->fsi->filename == NULL)) {
-        fprintf(stderr, " no %s\n", fid_info->fsi ? "filename" : "fsi");
+    if (!fid_info || !fid_info->fsi || !fid_info->fsi->filename) {
+        fprintf(stderr, " no %s\n", fid_info ? (fid_info->fsi ? "filename" : "fsi") : "fid_info");
         return 0;
     }
 
