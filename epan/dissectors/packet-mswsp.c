@@ -239,6 +239,10 @@ static const value_string PropSet1_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet2_IDS[] = {
+    {3, "System.Kind"},
+    {0, NULL}
+};
 
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
@@ -268,6 +272,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x446D16B1, 0x8DAD, 0x4870, {0xA7, 0x48, 0x40, 0x2E, 0xA4, 0x3D, 0x78, 0x8C}},
      "???", "Unspecified Property Set",
      PropSet1_IDS},
+    {{0x1E3EE840, 0xBC2B, 0x476C, {0x82, 0x37, 0x2A, 0xCD, 0x1A, 0x83, 0x9B, 0x22}},
+     "???", "Unspecified Property Set",
+     PropSet2_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
