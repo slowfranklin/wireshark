@@ -117,6 +117,7 @@ static gint ett_CFullPropSpec = -1;
 static gint ett_CPidMapper = -1;
 static gint ett_CSort = -1;
 static gint ett_CSortSet = -1;
+static gint ett_CNatLanguageRestriction = -1;
 
 /******************************************************************************/
 struct GuidPropertySet {
@@ -333,6 +334,12 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset, proto_tree *tree, prot
 static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                                      proto_tree *pad_tree, struct CContentRestriction *v,
                                      const char *fmt, ...);
+
+/* 2.2.1.5 CNatLanguageRestriction */
+static int parse_CNatLanguageRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                         proto_tree *pad_tree, struct CNatLanguageRestriction *v,
+                                         const char *fmt, ...);
+
 /* 2.2.1.6 CNodeRestriction */
 static int parse_CNodeRestriction(tvbuff_t *tvb, int offset, proto_tree *tree, proto_tree *pad_tree,
                                   struct CNodeRestriction *v, const char* fmt, ...);
@@ -444,7 +451,6 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset,
 
 /*
 2.2.1.4 CInternalPropertyRestriction
-2.2.1.5 CNatLanguageRestriction
 2.2.1.9 CScopeRestriction
 2.2.1.11 CVectorRestriction
 2.2.1.13 CRelDocRestriction
@@ -715,6 +721,47 @@ static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *pare
     return offset;
 }
 
+int parse_CNatLanguageRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
+                                         proto_tree *pad_tree, struct CNatLanguageRestriction *v,
+                                         const char *fmt, ...)
+{
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+    guint32 cc;
+    const char *str;
+
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+
+    tree = proto_item_add_subtree(item, ett_CNatLanguageRestriction);
+
+    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v->property, "Property");
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "padding_cc");
+
+    cc = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "cc: %u", cc);
+    offset += 4;
+
+//    str = tvb_get_ephemeral_string_enc(tvb, offset, 2*cc, ENC_UTF_16);
+    str = tvb_get_unicode_string(tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
+    v->phrase = se_strdup(str);
+    proto_tree_add_text(tree, tvb, offset, 2*cc, "phrase: %s", str);
+    offset += 2*cc;
+
+    offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
+
+    v->lcid = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
+    offset += 4;
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
 
 static int parse_CReuseWhere(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                              proto_tree *pad_tree _U_, struct CReuseWhere *v,
@@ -830,6 +877,12 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
         v->u.RTReuseWhere = ep_alloc(sizeof(struct CReuseWhere)); //XXX
         offset = parse_CReuseWhere(tvb, offset, tree, pad_tree,
                                    v->u.RTReuseWhere, "CReuseWhere");
+        break;
+    }
+    case RTNatLanguage: {
+        v->u.RTNatLanguage = ep_alloc(sizeof(struct CNatLanguageRestriction)); //XXX
+        offset = parse_CNatLanguageRestriction(tvb, offset, tree, pad_tree,
+                                   v->u.RTNatLanguage, "CNatLanguageRestriction");
         break;
     }
     default:
@@ -2494,6 +2547,7 @@ proto_register_mswsp(void)
             &ett_CPidMapper,
             &ett_CSort,
             &ett_CSortSet,
+            &ett_CNatLanguageRestriction,
 	};
 
         int i;

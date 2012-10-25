@@ -226,3 +226,10 @@ struct CContentRestriction {
 struct CReuseWhere /*Restriction*/ {
 	guint32 whereId;
 };
+
+/* 2.2.1.5 */
+struct CNatLanguageRestriction {
+	struct CFullPropSpec property;
+	const char *phrase;
+	guint32 lcid;
+};
