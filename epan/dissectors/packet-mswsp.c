@@ -248,6 +248,29 @@ static const value_string MusicGuid_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet3_IDS[] = {
+    { 2, "System.Message.BccAddress"},
+    { 3, "System.Message.BccName"},
+    { 4, "System.Message.CcAddress"},
+    { 5, "System.Message.CcName"},
+    { 6, "System.ItemFolderPathDisplay"},
+    { 7, "System.ItemPathDisplay"},
+    { 9, "System.Communication.AccountName"},
+    {10, "System.IsRead"},
+    {11, "System.Importance"},
+    {12, "System.FlagStatus"},
+    {13, "System.Message.FromAddress"},
+    {14, "System.Message.FromName"},
+    {15, "System.Message.Store"},
+    {16, "System.Message.ToAddress"},
+    {17, "System.Message.ToName"},
+    {18, "System.Contact.WebPage"},
+    {19, "System.Message.DateSent"},
+    {20, "System.Message.DateReceived"},
+    {21, "System.Message.AttachmentNames"},
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -282,6 +305,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x56A3372E, 0xCE9C, 0x11d2, {0x9F, 0x0E, 0x00, 0x60, 0x97, 0xC6, 0x86, 0xF6}},
      "Music", "Music Property Set",
      MusicGuid_IDS},
+    {{0xE3E0584C, 0xB788, 0x4A5A, {0xBB, 0x20, 0x7F, 0x5A, 0x44, 0xC9, 0xAC, 0xDD}},
+     "???", "Unspecified Property Set",
+     PropSet3_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
