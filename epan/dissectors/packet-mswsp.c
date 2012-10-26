@@ -271,6 +271,32 @@ static const value_string PropSet3_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet4_IDS[] = {
+    {100, "System.ItemFolderPathDisplayNarrow"},
+    {0, NULL}
+};
+
+static const value_string PropSet5_IDS[] = {
+    {100, "System.Contact.FullName"},
+    {0, NULL}
+};
+
+static const value_string PropSet6_IDS[] = {
+    {100, "System.ItemAuthors"},
+    {0, NULL}
+};
+
+static const value_string PropSet7_IDS[] = {
+    {2, "System.Shell.OmitFromView"},
+    {0, NULL}
+};
+
+static const value_string PropSet8_IDS[] = {
+    {2, "System.Shell.SFGAOFlagsStrings"},
+    {3, "System.Link.TargetSFGAOFlagsStrings"},
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -308,6 +334,21 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xE3E0584C, 0xB788, 0x4A5A, {0xBB, 0x20, 0x7F, 0x5A, 0x44, 0xC9, 0xAC, 0xDD}},
      "???", "Unspecified Property Set",
      PropSet3_IDS},
+    {{0xDABD30ED, 0x0043, 0x4789, {0xA7, 0xF8, 0xD0, 0x13, 0xA4, 0x73, 0x66, 0x22}},
+     "???", "Unspecified Property Set",
+     PropSet4_IDS},
+    {{0x635E9051, 0x50A5, 0x4BA2, {0xB9, 0xDB, 0x4E, 0xD0, 0x56, 0xC7, 0x72, 0x96}},
+     "???", "Unspecified Property Set",
+     PropSet5_IDS},
+    {{0xD0A04F0A, 0x462A, 0x48A4, {0xBB, 0x2F, 0x37, 0x06, 0xE8, 0x8D, 0xBD, 0x7D}},
+     "???", "Unspecified Property Set",
+     PropSet6_IDS},
+    {{0xDE35258C, 0xC695, 0x4CBC, {0xB9, 0x82, 0x38, 0xB0, 0xAD, 0x24, 0xCE, 0xD0}},
+     "???", "Unspecified Property Set",
+     PropSet7_IDS},
+    {{0xD6942081, 0xD53B, 0x443D, {0xAD, 0x47, 0x5E, 0x05, 0x9D, 0x9C, 0xD2, 0x7A}},
+     "???", "Unspecified Property Set",
+     PropSet8_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
