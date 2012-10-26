@@ -118,6 +118,8 @@ static gint ett_CPidMapper = -1;
 static gint ett_CSort = -1;
 static gint ett_CSortSet = -1;
 static gint ett_CNatLanguageRestriction = -1;
+static gint ett_CColumnGroup = -1;
+static gint ett_CColumnGroupArray = -1;
 
 /******************************************************************************/
 struct GuidPropertySet {
@@ -529,6 +531,16 @@ static int parse_CPidMapper(tvbuff_t *tvb, int offset,
                             proto_tree *parent_tree, proto_tree *pad_tree,
                             const char *fmt, ...);
 
+/* 2.2.1.34 CColumnGroupArray */
+static int parse_CColumnGroupArray(tvbuff_t *tvb, int offset,
+                                   proto_tree *parent_tree, proto_tree *pad_tree,
+                                   const char *fmt, ...);
+
+/* 2.2.1.35 CColumnGroup */
+static int parse_CColumnGroup(tvbuff_t *tvb, int offset,
+                              proto_tree *parent_tree, proto_tree *pad_tree,
+                              const char *fmt, ...);
+
 /* 2.2.1.41 CRowsetProperties */
 static int parse_CRowsetProperties(tvbuff_t *tvb, int offset,
                                    proto_tree *parent_tree, proto_tree *pad_tree,
@@ -547,9 +559,6 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset,
 2.2.1.14 CProbRestriction
 2.2.1.15 CFeedbackRestriction
 2.2.1.19 CCategorizationSet
-2.2.1.34 CColumnGroupArray
-2.2.1.35 CColumnGroup
-2.2.1.36 SProperty
 2.2.1.37 CRowSeekAt
 2.2.1.38 CRowSeekAtRatio
 2.2.1.39 CRowSeekByBookmark
@@ -2071,6 +2080,78 @@ int parse_CPidMapper(tvbuff_t *tvb, int offset,
     return offset;
 }
 
+/* 2.2.1.35 CColumnGroup */
+int parse_CColumnGroup(tvbuff_t *tvb, int offset,
+                       proto_tree *parent_tree, proto_tree *pad_tree,
+                       const char *fmt, ...)
+{
+    proto_tree *tree;
+    proto_item *item, *ti;
+    va_list ap;
+
+    guint32 count, groupPid, i;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CColumnGroup);
+
+    count = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", count);
+    offset += 4;
+
+    groupPid = tvb_get_letohl(tvb, offset);
+    ti = proto_tree_add_text(tree, tvb, offset, 4, "groupPid: 0x%08x", groupPid);
+    if ((0xFFFF0000 & groupPid) == 0x7FFF0000) {
+        proto_item_append_text(ti, " Idx: %u", groupPid & 0xFFFF);
+    } else {
+        proto_item_append_text(ti, "<Invalid>");
+    }
+    offset += 4;
+
+    for (i=0; i<count; i++) {
+        /* 2.2.1.36 SProperty */
+        guint32 pid, weight;
+        pid = tvb_get_letohl(tvb, offset);
+        weight = tvb_get_letohl(tvb, offset + 4);
+        proto_tree_add_text(tree, tvb, offset, 8, "Props[%u]: pid: %u weight: %u", i, pid, weight);
+        offset += 8;
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+/* 2.2.1.34 CColumnGroupArray */
+int parse_CColumnGroupArray(tvbuff_t *tvb, int offset,
+                            proto_tree *parent_tree, proto_tree *pad_tree,
+                            const char *fmt, ...)
+{
+    proto_tree *tree;
+    proto_item *item;
+    va_list ap;
+
+    guint32 count, i;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CColumnGroupArray);
+
+    count = tvb_get_letohl(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 4, "count: %u", count);
+    offset += 4;
+
+    for (i=0; i<count; i++) {
+        offset = parse_padding(tvb, offset, 4, pad_tree, "aGroupArray[%u]", i);
+        offset = parse_CColumnGroup(tvb, offset, tree, pad_tree, "aGroupArray[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+
 /* Code to actually dissect the packets */
 
 static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
@@ -2238,6 +2319,8 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         offset = parse_CRowsetProperties(tvb, offset, tree, pad_tree, "RowSetProperties");
 
         offset = parse_CPidMapper(tvb, offset, tree, pad_tree, "PidMapper");
+
+        offset = parse_CColumnGroupArray(tvb, offset, tree, pad_tree, "GroupArray");
     }
 
     return tvb_length(tvb);
@@ -2644,6 +2727,8 @@ proto_register_mswsp(void)
             &ett_CSort,
             &ett_CSortSet,
             &ett_CNatLanguageRestriction,
+            &ett_CColumnGroup,
+            &ett_CColumnGroupArray,
 	};
 
         int i;
