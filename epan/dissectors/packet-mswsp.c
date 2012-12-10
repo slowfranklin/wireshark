@@ -120,6 +120,7 @@ static gint ett_CSortSet = -1;
 static gint ett_CNatLanguageRestriction = -1;
 static gint ett_CColumnGroup = -1;
 static gint ett_CColumnGroupArray = -1;
+static gint ett_LCID = -1;
 
 /******************************************************************************/
 struct GuidPropertySet {
@@ -413,6 +414,33 @@ static int parse_guid(tvbuff_t *tvb, int offset, proto_tree *tree, e_guid_t *gui
     return offset;
 }
 
+static const value_string LCID_LID[] = {
+    {0x0407, "de-DE"},
+    {0x0409, "en-US"},
+    {0, NULL}
+};
+
+
+/*Language Code ID: http://msdn.microsoft.com/en-us/library/cc233968(v=prot.20).aspx */
+static int parse_lcid(tvbuff_t *tvb, int offset, proto_tree *parent_tree, const char *text)
+{
+    proto_item *item;
+    proto_tree *tree;
+    guint32 lcid;
+    const char *langid;
+
+    item = proto_tree_add_text(parent_tree, tvb, offset, 4, "%s", text);
+    tree = proto_item_add_subtree(item, ett_LCID);
+
+    lcid = tvb_get_letohl(tvb, offset);
+    langid = val_to_str(lcid & 0xFFFF, LCID_LID, "0x%04x");
+    proto_tree_add_text(tree, tvb, offset+2, 2, "Language ID: %s", langid);
+    proto_item_append_text(item, ": %s", langid);
+    proto_tree_add_text(tree, tvb, offset+1,1, "Sort ID: %u", (lcid >> 16) & 0xf);
+    offset += 4;
+    return offset;
+}
+
 /*****************************************************************************************/
 /* 2.2.1.1 CBaseStorageVariant */
 static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
@@ -573,7 +601,7 @@ static int parse_CSort(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
                        proto_tree *pad_tree _U_,
                        const char *fmt, ...)
 {
-    guint32 col, ord, ind, lcid;
+    guint32 col, ord, ind;
 
     proto_item *item;
     proto_tree *tree;
@@ -597,9 +625,7 @@ static int parse_CSort(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     proto_tree_add_text(tree, tvb, offset, 4, "individual: %u", ind);
     offset += 4;
 
-    lcid = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", lcid);
-    offset += 4;
+    offset = parse_lcid(tvb, offset, tree, "lcid");
 
     proto_item_set_end(item, tvb, offset);
     return offset;
@@ -749,8 +775,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
     offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
 
     v->lcid = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
-    offset += 4;
+    offset = parse_lcid(tvb, offset, tree, "lcid");
 
     proto_item_set_end(item, tvb, offset);
 
@@ -815,8 +840,7 @@ static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *pare
     offset = parse_padding(tvb, offset, 4, pad_tree, "Padding2");
 
     v->lcid = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
-    offset += 4;
+    offset = parse_lcid(tvb, offset, tree, "lcid");
 
     v->method = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "method: 0x%08x", v->method);
@@ -860,8 +884,7 @@ int parse_CNatLanguageRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
     offset = parse_padding(tvb, offset, 4, pad_tree, "padding_lcid");
 
     v->lcid = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "lcid: 0x%08x", v->lcid);
-    offset += 4;
+    offset = parse_lcid(tvb, offset, tree, "lcid");
 
     proto_item_set_end(item, tvb, offset);
     return offset;
@@ -1721,16 +1744,14 @@ int parse_CRangeCategSpec(tvbuff_t *tvb, int offset,
     proto_tree *tree;
     va_list ap;
     unsigned i;
-    guint32 lcid, cRange;
+    guint32 cRange;
 
     va_start(ap, fmt);
     item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
     tree = proto_item_add_subtree(item, ett_CRangeCategSpec);
     va_end(ap);
 
-    lcid = tvb_get_letohl(tvb, offset);
-    proto_tree_add_text(tree, tvb, offset, 4, "Lcid 0x%08x", lcid);
-    offset += 4;
+    offset = parse_lcid(tvb, offset, tree, "lcid");
 
     cRange = tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "cRange 0x%08x", cRange);
@@ -2729,6 +2750,7 @@ proto_register_mswsp(void)
             &ett_CNatLanguageRestriction,
             &ett_CColumnGroup,
             &ett_CColumnGroupArray,
+            &ett_LCID,
 	};
 
         int i;
