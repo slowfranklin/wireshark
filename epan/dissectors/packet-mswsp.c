@@ -300,6 +300,20 @@ static const value_string PropSet8_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet9_IDS[] = {
+    {100, "System.ItemDate"},
+    {0, NULL}
+};
+
+static const value_string PropSet10_IDS[] = {
+    { 5, "System.MIMEType"},
+    { 8, "System.Search.GatherTime"},
+    { 9, "System.Search.AccessCount"},
+    {11, "System.Search.LastIndexedTotalTime"},
+    {0, NULL}
+};
+
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -352,6 +366,12 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xD6942081, 0xD53B, 0x443D, {0xAD, 0x47, 0x5E, 0x05, 0x9D, 0x9C, 0xD2, 0x7A}},
      "???", "Unspecified Property Set",
      PropSet8_IDS},
+    {{0xF7DB74B4, 0x4287, 0x4103, {0xAF, 0xBA, 0xF1, 0xB1, 0x3D, 0xCD, 0x75, 0xCF}},
+     "???", "Unspecified Property Set",
+     PropSet9_IDS},
+    {{0x0B63E350, 0x9CCC, 0x11d0, {0xBC, 0xDB, 0x00, 0x80, 0x5F, 0xCC, 0xCE, 0x04}},
+     "???", "Unspecified Property Set",
+     PropSet10_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
