@@ -313,6 +313,47 @@ static const value_string PropSet10_IDS[] = {
     {0, NULL}
 };
 
+static const value_string PropSet11_IDS[] = {
+    {5, "System.Priority"},
+    {8, "System.Messagee.HasAttachments"},
+    {0, NULL}
+};
+
+static const value_string DocCharacter_IDS[] = {
+    {2, "System.Search.Autosummary"},
+    {0, NULL}
+};
+
+static const value_string PropSet12_IDS[] = {
+    {100, "System.IsDeleted"},
+    {0, NULL}
+};
+
+static const value_string PropSet13_IDS[] = {
+    {100, "System.IsAttachment"},
+    {0, NULL}
+};
+
+static const value_string PropSet14_IDS[] = {
+    {100, "System.Message.ConversationID"},
+    {101, "System.Message.ConversationIndex"},
+    {0, NULL}
+};
+
+static const value_string DocPropSetGuid2_IDS[] = {
+    {0x02, "System.Category"},
+    {0x03, "System.Document.PresentationFormat"},
+    {0x04, "System.Document.ByteCount"},
+    {0x05, "System.Document.LineCount"},
+    {0x06, "System.Document.ParagraphCount"},
+    {0x07, "System.Document.SlideCount"},
+    {0x08, "DocNoteCount"},
+    {0x09, "System.Document.HiddenSlideCount"},
+    {0x0D, "DocPartTitles"},
+    {0x0E, "System.Document.Manager"},
+    {0x0F, "System.Company"},
+    {0, NULL}
+};
 
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
@@ -372,6 +413,24 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0x0B63E350, 0x9CCC, 0x11d0, {0xBC, 0xDB, 0x00, 0x80, 0x5F, 0xCC, 0xCE, 0x04}},
      "???", "Unspecified Property Set",
      PropSet10_IDS},
+    {{0x9C1FCF74, 0x2D97, 0x41BA, {0xB4, 0xAE, 0xCB, 0x2E, 0x36, 0x61, 0xA6, 0xE4}},
+     "???", "Unspecified Property Set",
+     PropSet11_IDS},
+    {{0x560C36C0, 0x503A, 0x11CF, {0xBA, 0xA1, 0x00, 0x00, 0x4C, 0x75, 0x2A, 0x9A}},
+     "DocCharacter", "Document characterization Property Set",
+     DocCharacter_IDS},
+    {{0x5CDA5FC8, 0x33EE, 0x4FF3, {0x90, 0x94, 0xAE, 0x7B, 0xD8, 0x86, 0x8C, 0x4D}},
+     "???", "Unspecified Property Set",
+     PropSet12_IDS},
+    {{0xF23F425C, 0x71A1, 0x4FA8, {0x92, 0x2F, 0x67, 0x8E, 0xA4, 0xA6, 0x04, 0x08}},
+     "???", "Unspecified Property Set",
+     PropSet13_IDS},
+    {{0xDC8F80BD, 0xAF1E, 0x4289, {0x85, 0xB6, 0x3D, 0xFC, 0x1B, 0x49, 0x39, 0x92}},
+     "???", "Unspecified Property Set",
+     PropSet14_IDS},
+    {{0xD5CDD502, 0x2E9C, 0x101B, {0x93, 0x97, 0x08, 0x00, 0x2B, 0x2C, 0xF9, 0xAE}},
+     "DocPropSet2", "Document Property Set 2",
+     DocPropSetGuid2_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
