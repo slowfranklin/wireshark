@@ -355,6 +355,22 @@ static const value_string DocPropSetGuid2_IDS[] = {
     {0, NULL}
 };
 
+static const value_string SystemContact_IDS[] = {
+    { 6, "System.Contact.JobTitle"},
+    { 7, "System.Contact.OfficeLocation"},
+    {20, "System.Contact.HomeTelephone"},
+    {25, "System.Contact.PrimaryTelephone"},
+    {35, "System.Contact.MobileTelephone"},
+    {47, "System.Contact.Birthday"},
+    {48, "System.Contact.PrimaryEmailAddress"},
+    {65, "System.Contact.HomeAddressCity"},
+    {69, "System.Contact.PersonalTitle"},
+    {71, "System.Contact.MiddleName"},
+    {73, "System.Contact.Suffix"},
+    {74, "System.Contact.NickName"},
+    {0, NULL}
+};
+
 static struct GuidPropertySet GuidPropertySet[] = {
     {{0xa9bd1526, 0x6a80, 0x11d0, {0x8c, 0x9d, 0x00, 0x20, 0xaf, 0x1d, 0x74, 0x0e}},
      "DBPROPSET_FSCIFRMWRK_EXT", "File system content index framework",
@@ -431,6 +447,9 @@ static struct GuidPropertySet GuidPropertySet[] = {
     {{0xD5CDD502, 0x2E9C, 0x101B, {0x93, 0x97, 0x08, 0x00, 0x2B, 0x2C, 0xF9, 0xAE}},
      "DocPropSet2", "Document Property Set 2",
      DocPropSetGuid2_IDS},
+    {{0x176DC63C, 0x2688, 0x4E89, {0x81, 0x43, 0xA3, 0x47, 0x80, 0x0F, 0x25, 0xE9}},
+     "System.Contact", "System Contact Property Set",
+     SystemContact_IDS},
 };
 
 static struct GuidPropertySet *GuidPropertySet_find_guid(const e_guid_t *guid)
