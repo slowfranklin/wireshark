@@ -2440,6 +2440,13 @@ static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
         offset = parse_CPidMapper(tvb, offset, tree, pad_tree, "PidMapper");
 
         offset = parse_CColumnGroupArray(tvb, offset, tree, pad_tree, "GroupArray");
+    } else { /* out */
+        proto_tree_add_text(tree, tvb, offset, 4, "TrueSequential");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "WorkIdUnique");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, -1, "Cursors");
+        //offset += 4*(#CategorizationSet + 1);
     }
 
     return tvb_length(tvb);
