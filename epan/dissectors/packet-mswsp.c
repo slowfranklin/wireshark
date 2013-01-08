@@ -2371,13 +2371,13 @@ static int dissect_CPMDisconnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
 static int dissect_CPMCreateQuery(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
     gint offset = 16;
-    proto_item *ti;
+    proto_item *item;
     proto_tree *tree;
 
-    ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
-    tree = proto_item_add_subtree(ti, ett_mswsp_msg);
+    item = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
+    tree = proto_item_add_subtree(item, ett_mswsp_msg);
 
-    proto_item_set_text(ti, "CPMCreateQuery%s", in ? "In" : "Out");
+    proto_item_set_text(item, "CPMCreateQuery%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "CreateQuery");
 
     if (in) {
@@ -2482,9 +2482,43 @@ static int dissect_CPMGetApproximatePosition(tvbuff_t *tvb, packet_info *pinfo, 
     return tvb_length(tvb);
 }
 
-static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
+/* 2.2.3.10 */
+static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
+    gint offset = 16;
+
     col_append_str(pinfo->cinfo, COL_INFO, "SetBindings");
+
+    if (in) {
+        proto_item *ti;
+        proto_tree *tree;
+        guint32 size;
+
+        ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
+        tree = proto_item_add_subtree(ti, ett_mswsp_msg);
+
+        proto_item_set_text(ti, "SetBindingsIn");
+
+        proto_tree_add_text(tree, tvb, offset, 4, "hCursor");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cbRow");
+        offset += 4;
+
+        size = tvb_get_letohl(tvb, offset);
+        proto_tree_add_text(tree, tvb, offset, 4, "cbBindingDesc: %d", size);
+        offset += 4;
+
+        proto_tree_add_text(tree, tvb, offset, 4, "dummy");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cColumns");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, size-4, "aColumns");
+        offset += (size - 4);
+
+    } else { /* server only returns status with header */
+    }
+
+//XXX    DISSECTOR_ASSERT(offset == tvb_length(tvb));
     return tvb_length(tvb);
 }
 
