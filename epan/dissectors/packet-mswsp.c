@@ -121,6 +121,7 @@ static gint ett_CNatLanguageRestriction = -1;
 static gint ett_CColumnGroup = -1;
 static gint ett_CColumnGroupArray = -1;
 static gint ett_LCID = -1;
+static gint ett_CTableColumn = -1;
 
 /******************************************************************************/
 struct GuidPropertySet {
@@ -677,6 +678,12 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset,
                           proto_tree *parent_tree, proto_tree *pad_tree,
                           const char *fmt, ...);
 
+/* 2.2.1.44 CTableColumn */
+static int parse_CTableColumn(tvbuff_t *tvb, int offset,
+                              proto_tree *parent_tree, proto_tree *pad_tree,
+                              const char *fmt, ...);
+
+
 /*
 2.2.1.4 CInternalPropertyRestriction
 2.2.1.9 CScopeRestriction
@@ -690,7 +697,6 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset,
 2.2.1.39 CRowSeekByBookmark
 2.2.1.40 CRowSeekNext
 2.2.1.42 CRowVariant
-2.2.1.44 CTableColumn
 2.2.1.45 SERIALIZEDPROPERTYVALUE
 2.2.1.46 CCompletionCategSp
 */
@@ -752,6 +758,73 @@ static int parse_CSortSet(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
     for (i=0; i<count; i++) {
         offset = parse_padding(tvb, offset, 4, tree, "padding_sortArray[%u]", i);
         offset = parse_CSort(tvb, offset, tree, pad_tree, "sortArray[%u]", i);
+    }
+
+    proto_item_set_end(item, tvb, offset);
+    return offset;
+}
+
+static int parse_CTableColumn(tvbuff_t *tvb, int offset,
+                              proto_tree *parent_tree, proto_tree *pad_tree,
+                              const char *fmt, ...)
+{
+    proto_item *item;
+    proto_tree *tree;
+    va_list ap;
+
+    struct CFullPropSpec v;
+    guint8 used;
+
+    va_start(ap, fmt);
+    item = proto_tree_add_text_valist(parent_tree, tvb, offset, 0, fmt, ap);
+    va_end(ap);
+    tree = proto_item_add_subtree(item, ett_CTableColumn);
+
+    offset = parse_CFullPropSpec(tvb, offset, tree, pad_tree, &v, "PropSpec");
+
+    proto_tree_add_text(tree, tvb, offset, 4, "vType");
+    offset += 4;
+
+    proto_tree_add_text(tree, tvb, offset, 1, "AggreagateUsed");
+    offset += 1;
+
+    proto_tree_add_text(tree, tvb, offset, 1, "AggreagateType");
+    offset += 1;
+
+    used = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "ValueUsed");
+    offset += 1;
+
+    if (used) {
+        offset = parse_padding(tvb, offset, 2, pad_tree, "padding_Value");
+
+        proto_tree_add_text(tree, tvb, offset, 2, "ValueOffset");
+        offset += 2;
+
+        proto_tree_add_text(tree, tvb, offset, 2, "ValueSize");
+        offset += 2;
+    }
+
+    used = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "StatusUsed");
+    offset += 1;
+
+    if (used) {
+        offset = parse_padding(tvb, offset, 2, pad_tree, "padding_Status");
+
+        proto_tree_add_text(tree, tvb, offset, 2, "StatusOffset");
+        offset += 2;
+    }
+
+    used = tvb_get_guint8(tvb, offset);
+    proto_tree_add_text(tree, tvb, offset, 1, "LengthUsed");
+    offset += 1;
+
+    if (used) {
+        offset = parse_padding(tvb, offset, 2, pad_tree, "padding_Lenght");
+
+        proto_tree_add_text(tree, tvb, offset, 2, "LenghtOffset");
+        offset += 2;
     }
 
     proto_item_set_end(item, tvb, offset);
@@ -2491,13 +2564,16 @@ static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
     if (in) {
         proto_item *ti;
-        proto_tree *tree;
-        guint32 size;
+        proto_tree *tree, *pad_tree;
+        guint32 size, num, n;
 
         ti = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
         tree = proto_item_add_subtree(ti, ett_mswsp_msg);
 
         proto_item_set_text(ti, "SetBindingsIn");
+
+        ti = proto_tree_add_text(tree, tvb, offset, 0, "Padding");
+        pad_tree = proto_item_add_subtree(ti, ett_mswsp_pad);
 
         proto_tree_add_text(tree, tvb, offset, 4, "hCursor");
         offset += 4;
@@ -2510,15 +2586,20 @@ static int dissect_CPMSetBindings(tvbuff_t *tvb, packet_info *pinfo, proto_tree 
 
         proto_tree_add_text(tree, tvb, offset, 4, "dummy");
         offset += 4;
-        proto_tree_add_text(tree, tvb, offset, 4, "cColumns");
+
+        num = tvb_get_letohl(tvb, offset);
+        proto_tree_add_text(tree, tvb, offset, 4, "cColumns: %u", num);
         offset += 4;
+
         proto_tree_add_text(tree, tvb, offset, size-4, "aColumns");
-        offset += (size - 4);
+        for (n=0; n<num; n++) {
+            offset = parse_padding(tvb, offset, 4, pad_tree, "padding_aColumns[%u]", n);
+            offset = parse_CTableColumn(tvb, offset, tree, pad_tree, "aColumns[%u]", n);
+        }
 
     } else { /* server only returns status with header */
     }
 
-//XXX    DISSECTOR_ASSERT(offset == tvb_length(tvb));
     return tvb_length(tvb);
 }
 
@@ -2890,6 +2971,7 @@ proto_register_mswsp(void)
             &ett_CColumnGroup,
             &ett_CColumnGroupArray,
             &ett_LCID,
+            &ett_CTableColumn,
 	};
 
         int i;
