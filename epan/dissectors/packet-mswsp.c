@@ -2615,9 +2615,28 @@ static int dissect_CPMSendNotifyOut(tvbuff_t *tvb, packet_info *pinfo, proto_tre
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetQueryStatus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
+static int dissect_CPMGetQueryStatus(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
+    gint offset = 16;
+    proto_item *item;
+    proto_tree *tree;
+
+    item = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
+    tree = proto_item_add_subtree(item, ett_mswsp_msg);
+
+    proto_item_set_text(item, "GetQueryStatus%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatus");
+
+    if (in) {
+        /* 2.2.3.7 */
+        proto_tree_add_text(tree, tvb, offset, 4, "hCursor");
+        offset += 4;
+    } else {
+        /* 2.2.3.7 */
+        proto_tree_add_text(tree, tvb, offset, 4, "QStatus");
+        offset += 4;
+    }
+
     return tvb_length(tvb);
 }
 
