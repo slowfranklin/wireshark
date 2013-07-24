@@ -1261,7 +1261,8 @@ DISSECTOR_SRC = \
 #
 DIRTY_DISSECTOR_SRC = \
 	packet-x11.c \
-	packet-mswsp.c
+	packet-mswsp.c \
+	packet-dcerpc-witness.c
 
 #
 # Headers for dissectors.
