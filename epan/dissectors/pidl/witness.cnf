@@ -9,6 +9,13 @@ TYPE ipv6address "offset += 16;" FT_BYTES BASE_NONE 0 NULL 2
 HF_RENAME hf_witness_witness_interfaceInfo_group_name hf_dummy
 HF_FIELD hf_witness_witness_interfaceInfo_group_name "Group Name" "witness.witness_interfaceInfo.group_name" FT_STRING BASE_NONE NULL 0 "" "" ""
 
+PARAM_VALUE witness_dissect_element_Register_context_handle_ PIDL_POLHND_OPEN
+PARAM_VALUE witness_dissect_element_UnRegister_context_handle PIDL_POLHND_CLOSE
+HF_FIELD hf_witness_context_handle "Handle" "witness.handle" FT_BYTES BASE_NONE NULL 0 "" "" ""
+HF_RENAME hf_witness_witness_AsyncNotify_context_handle hf_witness_context_handle
+HF_RENAME hf_witness_witness_UnRegister_context_handle hf_witness_context_handle
+HF_RENAME hf_witness_witness_Register_context_handle hf_witness_context_handle
+
 CODE START
      #include "packet-smb-common.h"
 
