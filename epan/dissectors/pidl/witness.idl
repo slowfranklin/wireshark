@@ -66,8 +66,13 @@ interface witness
 	/*****************/
 	/* Function 0x03 */
 
+	typedef enum {
+		CHANGE = 1,
+		MOVE   = 2
+	} witness_notifyResponse_type;
+
 	typedef struct {
-		uint32 message_type;
+		witness_notifyResponse_type message_type;
 		uint32 length;
 		uint32 num_messages;
 		[size_is(length)] uint8 *message_buffer;
