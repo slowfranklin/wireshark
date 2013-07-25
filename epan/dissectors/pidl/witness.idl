@@ -14,16 +14,16 @@ interface witness
 	/*****************/
 	/* Function 0x00 */
 
-	typedef [public,enum16bit] enum {
-		UNKNOWN     = 0x0000,
-		AVAILABLE   = 0x0001,
-		UNAVAILABLE = 0x00ff
-	} witness_interface_state;
+	typedef [enum16bit] enum {
+		UNKNOWN     = 0x00,
+		AVAILABLE   = 0x01,
+		UNAVAILABLE = 0xff
+	} witness_interfaceInfo_state;
 
 	typedef struct {
 		[charset(UTF16),to_null] uint16 group_name[260];
 		uint32 version;
-		witness_interface_state state;
+		witness_interfaceInfo_state state;
 		[flag(NDR_BIG_ENDIAN)] ipv4address ipv4;
 		[flag(NDR_BIG_ENDIAN)] ipv6address ipv6;
 		uint32 flags;
