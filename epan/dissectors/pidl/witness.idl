@@ -20,13 +20,19 @@ interface witness
 		UNAVAILABLE = 0xff
 	} witness_interfaceInfo_state;
 
+	typedef [bitmap32bit] bitmap {
+		IPv4_VALID = 0x01,
+		IPv6_VALID = 0x02,
+		WITNESS_IF = 0x04
+	} witness_interfaceInfo_flags;
+
 	typedef struct {
 		[charset(UTF16),to_null] uint16 group_name[260];
 		uint32 version;
 		witness_interfaceInfo_state state;
 		[flag(NDR_BIG_ENDIAN)] ipv4address ipv4;
 		[flag(NDR_BIG_ENDIAN)] ipv6address ipv6;
-		uint32 flags;
+		witness_interfaceInfo_flags flags;
 	} witness_interfaceInfo;
 
 	typedef struct {
