@@ -1,6 +1,66 @@
 MANUAL witness_dissect_element_interfaceInfo_group_name
-TYPE ipv4address "offset=PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, @HF@, @PARAM@);" FT_BYTES BASE_NONE 0 NULL 4
-TYPE ipv6address "offset += 16;" FT_NONE BASE_NONE 0 NULL 2
+MANUAL witness_dissect_element_interfaceInfo_group_name_
+#TYPE ipv4address "offset=PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, @HF@, @PARAM@);" FT_IPv4 BASE_NONE 0 NULL 4
+#TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, @HF@, @PARAM@);" FT_IPv4 BASE_NONE 0 NULL 4
+TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv4 BASE_NONE 0 NULL 4
+#PARAM_VALUE ipv4address PIDL_SET_COL_INFO
+
+TYPE ipv6address "offset += 16;" FT_BYTES BASE_NONE 0 NULL 2
+HF_RENAME hf_witness_witness_interfaceInfo_group_name hf_dummy
 HF_FIELD hf_witness_witness_interfaceInfo_group_name "Group Name" "witness.witness_interfaceInfo.group_name" FT_STRING BASE_NONE NULL 0 "" "" ""
+
 CODE START
+     #include "packet-smb-common.h"
+
+static int
+witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree, guint8 *drep _U_)
+{
+	const gchar *str;
+	int len = 260;
+	guint16 bc = tvb_length_remaining(tvb, offset);
+
+	str = get_unicode_or_ascii_string(tvb, &offset, TRUE, &len, TRUE, TRUE, &bc);
+
+	if (str) {
+		proto_item *pi;
+		pi = proto_tree_add_string(parent_tree, hf_witness_witness_interfaceInfo_group_name, tvb, offset, 2*260, str);
+		proto_item_append_text(pi, " [%d]", len);
+		proto_item_append_text(parent_tree, ": %s", str);
+
+	} else {
+		//proto_tree_add_bytes
+	}
+
+	return offset + 2*260;
+}
+
+static int
+PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hfindex, guint32 param)
+{
+// 	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
+	dcerpc_info *di = pinfo->private_data;
+	if (di->conformant_run) {
+		/* just a run to handle conformant arrays, no scalars to dissect */
+		return offset;
+	}
+
+
+	if (!di->no_align && (offset % 4)) {
+		offset += 4 - (offset % 4);
+	}
+
+	proto_tree_add_item(tree, hfindex, tvb, offset, 4, ENC_BIG_ENDIAN);
+
+
+	if (param & PIDL_SET_COL_INFO) {
+           header_field_info *hf_info = proto_registrar_get_nth(hfindex);
+
+	   proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+
+           // if (check_col(pinfo->cinfo, COL_INFO)) {
+	   //     col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+	   // }
+	}
+	return offset + 4;
+}
 CODE END
