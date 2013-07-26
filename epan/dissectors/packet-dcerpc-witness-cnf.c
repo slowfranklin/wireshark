@@ -37,18 +37,23 @@ static int witness_dissect_move_ipaddr(tvbuff_t *tvb, int offset, packet_info *p
 
 	proto_tree_add_item(tr, hf_witness_move_ipaddr_list_ipv4, tvb, offset, 4, ENC_BIG_ENDIAN);
 	//proto_tree_add_ipv4
+	if (flags & 1) {
+		const char *ip = tvb_ip_to_str(tvb, offset);
+		proto_item_append_text(tr, " %s", ip);
+		proto_item_append_text(tree, " %s", ip);
+		col_append_fstr(pinfo->cinfo, COL_INFO, " %s", ip);
+	}
 	offset  += 4;
 
 	proto_tree_add_item(tr, hf_witness_move_ipaddr_list_ipv6, tvb, offset, 16, ENC_BIG_ENDIAN);
 	//proto_tree_add_ipv6
-	offset  += 16;
-
-	if (flags & 1) {
-		//add ipv4 to ti
-	}
 	if (flags & 2) {
-		//add ipv6 to ti
+		const char *ip = tvb_ip6_to_str(tvb, offset);
+		proto_item_append_text(tr, " %s", ip);
+		proto_item_append_text(tree, " %s", ip);
+		col_append_fstr(pinfo->cinfo, COL_INFO, " %s", ip);
 	}
+	offset  += 16;
 
 	proto_item_set_end(ti, tvb, offset);
 	return offset;
