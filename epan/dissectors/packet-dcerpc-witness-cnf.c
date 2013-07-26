@@ -1,16 +1,10 @@
+#include "packet-smb-common.h"
+
 struct notify_response {
 	guint32 length;
 	guint32 num;
 	guint32 type;
 };
-
-static gint hf_witness_move_ipaddr_list_flags = -1;
-static gint hf_witness_move_ipaddr_list_flags_ipv4 = -1;
-static gint hf_witness_move_ipaddr_list_flags_ipv6 = -1;
-static gint hf_witness_move_ipaddr_list_ipv4 = -1;
-static gint hf_witness_move_ipaddr_list_ipv6 = -1;
-static gint hf_witness_change_type = -1;
-static gint hf_witness_change_name = -1;
 
 static const int* witness_move_ipaddr_list_flags_fields[] = {
 	&hf_witness_move_ipaddr_list_flags_ipv4,
@@ -28,30 +22,9 @@ static const value_string witness_change_type_vals[] = {
 	{0, NULL}
 };
 
-static gint ett_witness_move_ipaddr_list_flags = -1;
-static gint ett_witness_move_ipaddr = -1;
-static gint ett_message_buffer = -1;
-static gint ett_message = -1;
-
-/* { &hf_witness_move_ipaddr_list_flags, */
-/* 	{ "IPv4", "witness.move_ipaddr_list.flags", FT_UINT32, BASE_HEX, NULL, 0, NULL, HFILL }}, */
-/* { &hf_witness_move_ipaddr_list_flags_ipv4, */
-/* 	{ "IPv4", "witness.move_ipaddr_list.ipv4", FT_BOOLEAN, 32, TFS(&valid_tfs), 0x01, NULL, HFILL }}, */
-/* { &hf_witness_move_ipaddr_list_flags_ipv6, */
-/* 	{ "IPv6", "witness.move_ipaddr_list.ipv6", FT_BOOLEAN, 32, TFS(&valid_tfs), 0x02, NULL, HFILL }}, */
-/* { &hf_witness_move_ipaddr_list_ipv4,  */
-/* 	{ "IPv4", "witness.move_ipaddr_list.ipv4.addr", FT_IPv4, BASE_NONE, NULL, 0, NULL, HFILL }}, */
-/* { &hf_witness_move_ipaddr_list_ipv6,  */
-/* 	{ "IPv6", "witness.move_ipaddr_list.ipv6.addr", FT_IPv6, BASE_NONE, NULL, 0, NULL, HFILL }}, */
-/* { &hf_witness_change_type,  */
-/* 	{ "Type", "witness.change.type", FT_UINT32, BASE_HEX, VALS(witness_change_type_vals), 0, NULL, HFILL }}, */
-/* { &hf_witness_change_name,  */
-/* 	{ "IPv4addr", "witness.change.name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }}, */
-
-
 static int witness_dissect_move_ipaddr(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree)
 {
-	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "IPAddr");
+	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "IP");
 	proto_tree *tr = proto_item_add_subtree(ti, ett_witness_move_ipaddr);
 
 	guint32 flags = tvb_get_letohl(tvb, offset);
@@ -171,8 +144,6 @@ witness_dissect_notifyResponse_message(tvbuff_t *tvb, int offset, packet_info *p
 	return offset;
 }
 
-
-//XXX dissect_ndr_ucarray
 static int
 dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
 		     proto_tree *tree, guint8 *drep,
@@ -221,7 +192,6 @@ witness_dissect_element_notifyResponse_message_buffer_(tvbuff_t *tvb _U_, int of
 {
 	dcerpc_info *di = pinfo->private_data;
 	offset = dissect_ndr_ucbuffer(tvb, offset, pinfo, tree, drep, witness_dissect_notifyResponse_message, di->private_data);
-//	offset = dissect_ndr_ucarray(tvb, offset, pinfo, tree, drep, witness_dissect_element_notifyResponse_message_buffer__);
 
 	return offset;
 }
@@ -257,16 +227,64 @@ witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pi
 			di->private_data = ep_memdup(&response, sizeof(response));
 		}
 	}
-//	offset = dissect_ndr_ucbuffer(tvb, offset, pinfo, tree, drep, witness_dissect_notifyResponse_message, &response);
+
 	offset = witness_dissect_element_notifyResponse_message_buffer(tvb, offset, pinfo, tree, drep);
 
-
 	proto_item_set_len(item, offset-old_offset);
-
 
 	if (di->call_data->flags & DCERPC_IS_NDR64) {
 		ALIGN_TO_5_BYTES;
 	}
 
 	return offset;
+}
+
+static int
+witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree, guint8 *drep _U_)
+{
+	const gchar *str;
+	int len = 260;
+	guint16 bc = tvb_length_remaining(tvb, offset);
+
+	str = get_unicode_or_ascii_string(tvb, &offset, TRUE, &len, TRUE, TRUE, &bc);
+
+	if (str) {
+		proto_item *pi;
+		pi = proto_tree_add_string(parent_tree, hf_witness_witness_interfaceInfo_group_name, tvb, offset, 2*260, str);
+		proto_item_append_text(pi, " [%d]", len);
+		proto_item_append_text(parent_tree, ": %s", str);
+
+	} else {
+		//proto_tree_add_bytes
+	}
+
+	return offset + 2*260;
+}
+
+static int
+PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hfindex, guint32 param)
+{
+// 	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
+	dcerpc_info *di = pinfo->private_data;
+	if (di->conformant_run) {
+		/* just a run to handle conformant arrays, no scalars to dissect */
+		return offset;
+	}
+
+
+	if (!di->no_align && (offset % 4)) {
+		offset += 4 - (offset % 4);
+	}
+
+	proto_tree_add_item(tree, hfindex, tvb, offset, 4, ENC_BIG_ENDIAN);
+
+
+	if (param & PIDL_SET_COL_INFO) {
+           header_field_info *hf_info = proto_registrar_get_nth(hfindex);
+
+	   proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+
+	   col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+	}
+	return offset + 4;
 }
