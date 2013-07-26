@@ -18,6 +18,7 @@ HF_RENAME hf_witness_witness_Register_context_handle hf_witness_context_handle
 
 CODE START
      #include "packet-smb-common.h"
+     #include "packet-dcerpc-witness-cnf.c"
 
 static int
 witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree, guint8 *drep _U_)
@@ -64,9 +65,7 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 
 	   proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
 
-           // if (check_col(pinfo->cinfo, COL_INFO)) {
-	   //     col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
-	   // }
+	   col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
 	}
 	return offset + 4;
 }
