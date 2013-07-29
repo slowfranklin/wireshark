@@ -3,10 +3,7 @@ MANUAL witness_dissect_element_interfaceInfo_group_name_
 MANUAL witness_dissect_struct_notifyResponse
 MANUAL witness_dissect_element_notifyResponse_message_buffer_
 
-#TYPE ipv4address "offset=PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, @HF@, @PARAM@);" FT_IPv4 BASE_NONE 0 NULL 4
-#TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, @HF@, @PARAM@);" FT_IPv4 BASE_NONE 0 NULL 4
 TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv4 BASE_NONE 0 NULL 4
-#PARAM_VALUE ipv4address PIDL_SET_COL_INFO
 
 TYPE ipv6address "offset += 16;" FT_BYTES BASE_NONE 0 NULL 2
 HF_RENAME hf_witness_witness_interfaceInfo_group_name hf_dummy
