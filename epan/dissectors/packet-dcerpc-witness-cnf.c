@@ -269,7 +269,7 @@ witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, pack
 static int
 PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep _U_, int hfindex, guint32 param)
 {
-// 	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
+//	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
 	dcerpc_info *di = pinfo->private_data;
 	if (di->conformant_run) {
 		/* just a run to handle conformant arrays, no scalars to dissect */
@@ -285,11 +285,12 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 
 
 	if (param & PIDL_SET_COL_INFO) {
-           header_field_info *hf_info = proto_registrar_get_nth(hfindex);
+		const char *ip = tvb_ip_to_str(tvb, offset);
+		header_field_info *hf_info = proto_registrar_get_nth(hfindex);
 
-	   proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+		proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, ip);
 
-	   col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, tvb_ip_to_str(tvb, offset));
+		col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, ip);
 	}
 	return offset + 4;
 }
