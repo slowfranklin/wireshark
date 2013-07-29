@@ -145,7 +145,7 @@ witness_dissect_notifyResponse_message(tvbuff_t *tvb, int offset, packet_info *p
 		offset = dissect(tvb, offset, pinfo, tree);
 	}
 
-	DISSECTOR_ASSERT(offset == old_offset + resp->length);
+	DISSECTOR_ASSERT((unsigned)offset == (unsigned)old_offset + resp->length);
 	return offset;
 }
 
@@ -186,7 +186,7 @@ dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
 		offset += dissect(subtvb, 0, pinfo, tree, private_data);
 //		pinfo->private_data = di;
 
-		DISSECTOR_ASSERT(offset == old_offset + di->array_max_count);
+		DISSECTOR_ASSERT((unsigned)offset == (unsigned)old_offset + di->array_max_count);
     }
 
     return offset;
@@ -267,7 +267,7 @@ witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, pack
 }
 
 static int
-PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hfindex, guint32 param)
+PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep _U_, int hfindex, guint32 param)
 {
 // 	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
 	dcerpc_info *di = pinfo->private_data;
@@ -295,7 +295,7 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 }
 
 int
-witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hf_index, guint32* param)
+witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hf_index, guint32* param _U_)
 {
 	return PIDL_dissect_uint16(tvb, offset, pinfo, tree, drep, hf_index, PIDL_SET_COL_INFO);
 }
