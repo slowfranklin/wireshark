@@ -293,3 +293,9 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 	}
 	return offset + 4;
 }
+
+int
+witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hf_index, guint32* param)
+{
+	return PIDL_dissect_uint16(tvb, offset, pinfo, tree, drep, hf_index, PIDL_SET_COL_INFO);
+}
