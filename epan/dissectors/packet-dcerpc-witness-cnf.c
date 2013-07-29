@@ -294,6 +294,36 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 	return offset + 4;
 }
 
+static int
+PIDL_dissect_ipv6address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep _U_, int hfindex, guint32 param)
+{
+//	tvb_get_ipv6(tvb, offset, &addr);
+	dcerpc_info *di = pinfo->private_data;
+	if (di->conformant_run) {
+		/* just a run to handle conformant arrays, no scalars to dissect */
+		return offset;
+	}
+
+
+	if (!di->no_align && (offset % 2)) {
+		offset += 2 - (offset % 2);
+	}
+
+	proto_tree_add_item(tree, hfindex, tvb, offset, 16, ENC_BIG_ENDIAN);
+
+	if (param & PIDL_SET_COL_INFO) {
+		const char *ip = tvb_ip6_to_str(tvb, offset);
+		header_field_info *hf_info = proto_registrar_get_nth(hfindex);
+
+		proto_item_append_text(proto_tree_get_parent(tree), " %s:%s", hf_info->name, ip);
+
+		col_append_fstr(pinfo->cinfo, COL_INFO," %s:%s", hf_info->name, ip);
+	}
+
+	return offset + 16;
+}
+
+
 int
 witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hf_index, guint32* param _U_)
 {
