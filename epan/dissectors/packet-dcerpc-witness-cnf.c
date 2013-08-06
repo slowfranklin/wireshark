@@ -91,6 +91,7 @@ static int witness_dissect_resource_change(tvbuff_t *tvb, int offset, packet_inf
 {
 	guint32 length, type;
 	char *name;
+	const int old_offset = offset;
 
 	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "Change");
 	proto_tree *tr = proto_item_add_subtree(ti, ett_message_buffer);
@@ -103,14 +104,16 @@ static int witness_dissect_resource_change(tvbuff_t *tvb, int offset, packet_inf
 	proto_tree_add_item(tr, hf_witness_change_type, tvb, offset, 4, ENC_LITTLE_ENDIAN);
 	offset += 4;
 
-	name = tvb_get_ephemeral_unicode_string(tvb, offset, length, ENC_LITTLE_ENDIAN);
-	proto_tree_add_string(tr, hf_witness_change_name, tvb, offset, length, name);
+	name = tvb_get_ephemeral_unicode_string(tvb, offset, length-8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_string(tr, hf_witness_change_name, tvb, offset, length-8, name);
 
 	proto_item_append_text(ti, ": %s -> %s", name,
 			       val_to_str(type, witness_change_type_vals,
 					  "Invalid (0x04%x)"));
 
-	return offset;
+	proto_item_set_len(ti, length);
+
+	return old_offset + length;
 }
 
 static int
