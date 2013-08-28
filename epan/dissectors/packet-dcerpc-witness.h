@@ -16,6 +16,10 @@
 #ifndef __PACKET_DCERPC_WITNESS_H
 #define __PACKET_DCERPC_WITNESS_H
 
+#define WITNESS_V1 (0x00010001)
+#define WITNESS_V2 (0x00020000)
+extern const value_string witness_witness_version_vals[];
+int witness_dissect_enum_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 *param _U_);
 #define UNKNOWN (0x00)
 #define AVAILABLE (0x01)
 #define UNAVAILABLE (0xff)
@@ -24,8 +28,10 @@ int witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb _U_, int offset _U_, 
 int witness_dissect_bitmap_interfaceInfo_flags(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 param _U_);
 int witness_dissect_struct_interfaceInfo(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 param _U_);
 int witness_dissect_struct_interfaceList(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 param _U_);
-#define CHANGE (1)
-#define MOVE (2)
+#define RESOURCE_CHANGE (1)
+#define CLIENT_MOVE (2)
+#define SHARE_MOVE (3)
+#define IP_CHANGE (4)
 extern const value_string witness_witness_notifyResponse_type_vals[];
 int witness_dissect_enum_notifyResponse_type(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 *param _U_);
 int witness_dissect_struct_notifyResponse(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *parent_tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 param _U_);

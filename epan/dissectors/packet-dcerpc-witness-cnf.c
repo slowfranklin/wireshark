@@ -129,13 +129,21 @@ witness_dissect_notifyResponse_message(tvbuff_t *tvb, int offset, packet_info *p
 	struct notify_response *resp = notify_response;
 
 	switch (resp->type) {
-	case MOVE:
-		msg = "Move";
+	case CLIENT_MOVE:
+		msg = "Client Move";
 		dissect = &witness_dissect_move_request;
 		break;
-	case CHANGE:
-		msg = "Change";
+	case RESOURCE_CHANGE:
+		msg = "Resource Change";
 		dissect = &witness_dissect_resource_change;
+		break;
+	case SHARE_MOVE:
+		msg = "Share Move";
+		dissect = &witness_dissect_move_request;
+		break;
+	case IP_CHANGE:
+		msg = "IP Change";
+		dissect = &witness_dissect_move_request;
 		break;
 	default:
 		DISSECTOR_ASSERT(FALSE);

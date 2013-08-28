@@ -11,6 +11,11 @@ import "misc.idl";
 ]
 interface witness
 {
+	typedef [v1_enum] enum {
+		WITNESS_V1 = 0x00010001,
+		WITNESS_V2 = 0x00020000
+	} witness_version;
+
 	/*****************/
 	/* Function 0x00 */
 
@@ -28,7 +33,7 @@ interface witness
 
 	typedef struct {
 		[charset(UTF16),to_null] uint16 group_name[260];
-		uint32 version;
+		witness_version version;
 		witness_interfaceInfo_state state;
 		[flag(NDR_BIG_ENDIAN)] ipv4address ipv4;
 		[flag(NDR_BIG_ENDIAN)] ipv6address ipv6;
@@ -50,7 +55,7 @@ interface witness
 
 	WERROR witness_Register(
 		[out,ref] policy_handle *context_handle,
-		[in] uint32 version,
+		[in] witness_version version,
 		[in,unique,string,charset(UTF16)] uint16 *net_name,
 		[in,unique,string,charset(UTF16)] uint16 *ip_address,
 		[in,unique,string,charset(UTF16)] uint16 *client_computer_name
@@ -67,8 +72,10 @@ interface witness
 	/* Function 0x03 */
 
 	typedef enum {
-		CHANGE = 1,
-		MOVE   = 2
+		RESOURCE_CHANGE = 1,
+		CLIENT_MOVE     = 2,
+		SHARE_MOVE      = 3,
+		IP_CHANGE       = 4
 	} witness_notifyResponse_type;
 
 	typedef struct {

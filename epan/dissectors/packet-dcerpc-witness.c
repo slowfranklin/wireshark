@@ -84,6 +84,11 @@ static e_uuid_t uuid_dcerpc_witness = {
 };
 static guint16 ver_dcerpc_witness = 1;
 
+const value_string witness_witness_version_vals[] = {
+	{ WITNESS_V1, "WITNESS_V1" },
+	{ WITNESS_V2, "WITNESS_V2" },
+{ 0, NULL }
+};
 const value_string witness_witness_interfaceInfo_state_vals[] = {
 	{ UNKNOWN, "UNKNOWN" },
 	{ AVAILABLE, "AVAILABLE" },
@@ -114,8 +119,10 @@ static int witness_dissect_element_interfaceList_interfaces(tvbuff_t *tvb _U_, i
 static int witness_dissect_element_interfaceList_interfaces_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
 static int witness_dissect_element_interfaceList_interfaces__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
 const value_string witness_witness_notifyResponse_type_vals[] = {
-	{ CHANGE, "CHANGE" },
-	{ MOVE, "MOVE" },
+	{ RESOURCE_CHANGE, "RESOURCE_CHANGE" },
+	{ CLIENT_MOVE, "CLIENT_MOVE" },
+	{ SHARE_MOVE, "SHARE_MOVE" },
+	{ IP_CHANGE, "IP_CHANGE" },
 { 0, NULL }
 };
 static int witness_dissect_element_notifyResponse_message_type(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
@@ -145,6 +152,26 @@ static int witness_dissect_element_AsyncNotify_response__(tvbuff_t *tvb _U_, int
 
 
 /* IDL: enum { */
+/* IDL: 	WITNESS_V1=0x00010001, */
+/* IDL: 	WITNESS_V2=0x00020000, */
+/* IDL: } */
+
+int
+witness_dissect_enum_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_, int hf_index _U_, guint32 *param _U_)
+{
+	guint32 parameter=0;
+	if(param){
+		parameter=(guint32)*param;
+	}
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, drep, hf_index, &parameter);
+	if(param){
+		*param=(guint32)parameter;
+	}
+	return offset;
+}
+
+
+/* IDL: enum { */
 /* IDL: 	UNKNOWN=0x00, */
 /* IDL: 	AVAILABLE=0x01, */
 /* IDL: 	UNAVAILABLE=0xff, */
@@ -167,7 +194,7 @@ witness_dissect_bitmap_interfaceInfo_flags(tvbuff_t *tvb _U_, int offset _U_, pa
 	ALIGN_TO_4_BYTES;
 
 	if (parent_tree) {
-		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, 4, DREP_ENC_INTEGER(drep));
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, 4, TRUE);
 		tree = proto_item_add_subtree(item,ett_witness_witness_interfaceInfo_flags);
 	}
 
@@ -211,7 +238,7 @@ witness_dissect_bitmap_interfaceInfo_flags(tvbuff_t *tvb _U_, int offset _U_, pa
 
 /* IDL: struct { */
 /* IDL: 	[to_null(1)] [charset(UTF16)] uint16 group_name[260]; */
-/* IDL: 	uint32 version; */
+/* IDL: 	witness_version version; */
 /* IDL: 	witness_interfaceInfo_state state; */
 /* IDL: 	[flag(LIBNDR_FLAG_BIGENDIAN)] ipv4address ipv4; */
 /* IDL: 	[flag(LIBNDR_FLAG_BIGENDIAN)] ipv6address ipv6; */
@@ -221,7 +248,7 @@ witness_dissect_bitmap_interfaceInfo_flags(tvbuff_t *tvb _U_, int offset _U_, pa
 static int
 witness_dissect_element_interfaceInfo_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
 {
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_interfaceInfo_version, 0);
+	offset = witness_dissect_enum_version(tvb, offset, pinfo, tree, drep, hf_witness_witness_interfaceInfo_version, 0);
 
 	return offset;
 }
@@ -271,7 +298,7 @@ witness_dissect_struct_interfaceInfo(tvbuff_t *tvb _U_, int offset _U_, packet_i
 	old_offset = offset;
 
 	if (parent_tree) {
-		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, TRUE);
 		tree = proto_item_add_subtree(item, ett_witness_witness_interfaceInfo);
 	}
 
@@ -349,7 +376,7 @@ witness_dissect_struct_interfaceList(tvbuff_t *tvb _U_, int offset _U_, packet_i
 	old_offset = offset;
 
 	if (parent_tree) {
-		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, ENC_NA);
+		item = proto_tree_add_item(parent_tree, hf_index, tvb, offset, -1, TRUE);
 		tree = proto_item_add_subtree(item, ett_witness_witness_interfaceList);
 	}
 
@@ -370,8 +397,10 @@ witness_dissect_struct_interfaceList(tvbuff_t *tvb _U_, int offset _U_, packet_i
 
 
 /* IDL: enum { */
-/* IDL: 	CHANGE=1, */
-/* IDL: 	MOVE=2, */
+/* IDL: 	RESOURCE_CHANGE=1, */
+/* IDL: 	CLIENT_MOVE=2, */
+/* IDL: 	SHARE_MOVE=3, */
+/* IDL: 	IP_CHANGE=4, */
 /* IDL: } */
 
 int
@@ -507,7 +536,7 @@ witness_dissect_element_Register_context_handle_(tvbuff_t *tvb _U_, int offset _
 static int
 witness_dissect_element_Register_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
 {
-	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_Register_version, 0);
+	offset = witness_dissect_enum_version(tvb, offset, pinfo, tree, drep, hf_witness_witness_Register_version, 0);
 
 	return offset;
 }
@@ -571,7 +600,7 @@ witness_dissect_element_Register_client_computer_name_(tvbuff_t *tvb _U_, int of
 
 /* IDL: WERROR witness_Register( */
 /* IDL: [out] [ref] policy_handle *context_handle, */
-/* IDL: [in] uint32 version, */
+/* IDL: [in] witness_version version, */
 /* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *net_name, */
 /* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *ip_address, */
 /* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *client_computer_name */
@@ -732,7 +761,7 @@ void proto_register_dcerpc_witness(void)
 	{ &hf_witness_werror,
 	  { "Windows Error", "witness.werror", FT_UINT32, BASE_HEX, VALS(WERR_errors), 0, NULL, HFILL }},
 	{ &hf_witness_witness_Register_version,
-	  { "Version", "witness.witness_Register.version", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	  { "Version", "witness.witness_Register.version", FT_UINT32, BASE_DEC, VALS(witness_witness_version_vals), 0, NULL, HFILL }},
 	{ &hf_witness_witness_Register_client_computer_name,
 	  { "Client Computer Name", "witness.witness_Register.client_computer_name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceList_num_interfaces,
@@ -748,7 +777,7 @@ void proto_register_dcerpc_witness(void)
 	{ &hf_witness_opnum,
 	  { "Operation", "witness.opnum", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_version,
-	  { "Version", "witness.witness_interfaceInfo.version", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
+	  { "Version", "witness.witness_interfaceInfo.version", FT_UINT32, BASE_DEC, VALS(witness_witness_version_vals), 0, NULL, HFILL }},
 	{ &hf_witness_change_type,
 	  { "Type", "witness.change.type", FT_UINT32, BASE_HEX, VALS(witness_change_type_vals), 0, NULL, HFILL }},
 	{ &hf_witness_move_ipaddr_list_flags_ipv4,
