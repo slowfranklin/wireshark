@@ -89,4 +89,18 @@ interface witness
 		[in] policy_handle context_handle,
 		[out] witness_notifyResponse **response
 		);
+
+	/*****************/
+	/* Function 0x04 */
+
+	WERROR witness_RegisterEx(
+		[out,ref] policy_handle *context_handle,
+		[in] witness_version version,
+		[in,unique,string,charset(UTF16)] uint16 *net_name,
+		[in,unique,string,charset(UTF16)] uint16 *share_name,
+		[in,unique,string,charset(UTF16)] uint16 *ip_address,
+		[in,unique,string,charset(UTF16)] uint16 *client_computer_name,
+		[in] uint32 flags,
+		[in] uint32 timeout
+		);
 }

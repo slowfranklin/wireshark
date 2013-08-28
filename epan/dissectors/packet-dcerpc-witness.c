@@ -42,8 +42,10 @@ static gint ett_witness_witness_notifyResponse = -1;
 
 /* Header field declarations */
 static gint hf_witness_move_ipaddr_list_flags = -1;
+static gint hf_witness_witness_RegisterEx_context_handle = -1;
 static gint hf_witness_witness_notifyResponse_num_messages = -1;
 static gint hf_witness_witness_notifyResponse_message_type = -1;
+static gint hf_witness_witness_RegisterEx_flags = -1;
 static gint hf_witness_werror = -1;
 static gint hf_witness_witness_Register_version = -1;
 static gint hf_witness_witness_Register_client_computer_name = -1;
@@ -52,13 +54,16 @@ static gint hf_witness_context_handle = -1;
 static gint hf_witness_witness_interfaceList_interfaces = -1;
 static gint hf_witness_move_ipaddr_list_ipv6 = -1;
 static gint hf_witness_witness_AsyncNotify_response = -1;
+static gint hf_witness_witness_RegisterEx_ip_address = -1;
 static gint hf_witness_opnum = -1;
 static gint hf_witness_witness_interfaceInfo_version = -1;
 static gint hf_witness_change_type = -1;
 static gint hf_witness_move_ipaddr_list_flags_ipv4 = -1;
 static gint hf_dcerpc_array_max_count = -1;
 static gint hf_witness_witness_interfaceInfo_flags_WITNESS_IF = -1;
+static gint hf_witness_witness_RegisterEx_version = -1;
 static gint hf_witness_witness_interfaceInfo_group_name = -1;
+static gint hf_witness_witness_RegisterEx_timeout = -1;
 static gint hf_witness_witness_interfaceInfo_flags_IPv6_VALID = -1;
 static gint hf_witness_move_ipaddr_list_flags_ipv6 = -1;
 static gint hf_witness_witness_interfaceInfo_flags_IPv4_VALID = -1;
@@ -66,6 +71,9 @@ static gint hf_witness_witness_interfaceInfo_flags = -1;
 static gint hf_witness_witness_interfaceInfo_ipv6 = -1;
 static gint hf_witness_witness_interfaceInfo_ipv4 = -1;
 static gint hf_witness_change_name = -1;
+static gint hf_witness_witness_RegisterEx_client_computer_name = -1;
+static gint hf_witness_witness_RegisterEx_share_name = -1;
+static gint hf_witness_witness_RegisterEx_net_name = -1;
 static gint hf_witness_witness_interfaceInfo_state = -1;
 static gint hf_witness_witness_notifyResponse_length = -1;
 static gint hf_witness_move_ipaddr_list_ipv4 = -1;
@@ -148,6 +156,19 @@ static int witness_dissect_element_AsyncNotify_context_handle(tvbuff_t *tvb _U_,
 static int witness_dissect_element_AsyncNotify_response(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
 static int witness_dissect_element_AsyncNotify_response_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
 static int witness_dissect_element_AsyncNotify_response__(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_context_handle(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_context_handle_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_net_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_net_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_share_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_share_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_ip_address(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_ip_address_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_client_computer_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_client_computer_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_flags(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
+static int witness_dissect_element_RegisterEx_timeout(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_);
  #include "packet-dcerpc-witness-cnf.c"
 
 
@@ -736,6 +757,171 @@ witness_dissect_AsyncNotify_request(tvbuff_t *tvb _U_, int offset _U_, packet_in
 	return offset;
 }
 
+static int
+witness_dissect_element_RegisterEx_context_handle(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = dissect_ndr_toplevel_pointer(tvb, offset, pinfo, tree, drep, witness_dissect_element_RegisterEx_context_handle_, NDR_POINTER_REF, "Pointer to Context Handle (policy_handle)",hf_witness_witness_RegisterEx_context_handle);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_context_handle_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = PIDL_dissect_policy_hnd(tvb, offset, pinfo, tree, drep, hf_witness_witness_RegisterEx_context_handle, 0);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_version(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = witness_dissect_enum_version(tvb, offset, pinfo, tree, drep, hf_witness_witness_RegisterEx_version, 0);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_net_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = dissect_ndr_toplevel_pointer(tvb, offset, pinfo, tree, drep, witness_dissect_element_RegisterEx_net_name_, NDR_POINTER_UNIQUE, "Pointer to Net Name (uint16)",hf_witness_witness_RegisterEx_net_name);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_net_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, drep, sizeof(guint16), hf_witness_witness_RegisterEx_net_name, FALSE, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_share_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = dissect_ndr_toplevel_pointer(tvb, offset, pinfo, tree, drep, witness_dissect_element_RegisterEx_share_name_, NDR_POINTER_UNIQUE, "Pointer to Share Name (uint16)",hf_witness_witness_RegisterEx_share_name);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_share_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, drep, sizeof(guint16), hf_witness_witness_RegisterEx_share_name, FALSE, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_ip_address(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = dissect_ndr_toplevel_pointer(tvb, offset, pinfo, tree, drep, witness_dissect_element_RegisterEx_ip_address_, NDR_POINTER_UNIQUE, "Pointer to Ip Address (uint16)",hf_witness_witness_RegisterEx_ip_address);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_ip_address_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, drep, sizeof(guint16), hf_witness_witness_RegisterEx_ip_address, FALSE, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_client_computer_name(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = dissect_ndr_toplevel_pointer(tvb, offset, pinfo, tree, drep, witness_dissect_element_RegisterEx_client_computer_name_, NDR_POINTER_UNIQUE, "Pointer to Client Computer Name (uint16)",hf_witness_witness_RegisterEx_client_computer_name);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_client_computer_name_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	char *data;
+
+	offset = dissect_ndr_cvstring(tvb, offset, pinfo, tree, drep, sizeof(guint16), hf_witness_witness_RegisterEx_client_computer_name, FALSE, &data);
+	proto_item_append_text(tree, ": %s", data);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_flags(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_RegisterEx_flags, 0);
+
+	return offset;
+}
+
+static int
+witness_dissect_element_RegisterEx_timeout(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	offset = PIDL_dissect_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_RegisterEx_timeout, 0);
+
+	return offset;
+}
+
+/* IDL: WERROR witness_RegisterEx( */
+/* IDL: [out] [ref] policy_handle *context_handle, */
+/* IDL: [in] witness_version version, */
+/* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *net_name, */
+/* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *share_name, */
+/* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *ip_address, */
+/* IDL: [unique(1)] [in] [charset(UTF16)] uint16 *client_computer_name, */
+/* IDL: [in] uint32 flags, */
+/* IDL: [in] uint32 timeout */
+/* IDL: ); */
+
+static int
+witness_dissect_RegisterEx_response(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	guint32 status;
+
+	pinfo->dcerpc_procedure_name="RegisterEx";
+	offset = witness_dissect_element_RegisterEx_context_handle(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, drep, hf_witness_werror, &status);
+
+	if (status != 0 && check_col(pinfo->cinfo, COL_INFO))
+		col_append_fstr(pinfo->cinfo, COL_INFO, ", Error: %s", val_to_str(status, WERR_errors, "Unknown DOS error 0x%08x"));
+
+	return offset;
+}
+
+static int
+witness_dissect_RegisterEx_request(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+{
+	pinfo->dcerpc_procedure_name="RegisterEx";
+	offset = witness_dissect_element_RegisterEx_version(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_net_name(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_share_name(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_ip_address(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_client_computer_name(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_flags(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	offset = witness_dissect_element_RegisterEx_timeout(tvb, offset, pinfo, tree, drep);
+	offset = dissect_deferred_pointers(pinfo, tvb, offset, drep);
+	return offset;
+}
+
 
 static dcerpc_sub_dissector witness_dissectors[] = {
 	{ 0, "GetInterfaceList",
@@ -746,6 +932,8 @@ static dcerpc_sub_dissector witness_dissectors[] = {
 	   witness_dissect_UnRegister_request, witness_dissect_UnRegister_response},
 	{ 3, "AsyncNotify",
 	   witness_dissect_AsyncNotify_request, witness_dissect_AsyncNotify_response},
+	{ 4, "RegisterEx",
+	   witness_dissect_RegisterEx_request, witness_dissect_RegisterEx_response},
 	{ 0, NULL, NULL, NULL }
 };
 
@@ -754,10 +942,14 @@ void proto_register_dcerpc_witness(void)
 	static hf_register_info hf[] = {
 	{ &hf_witness_move_ipaddr_list_flags,
 	  { "Flags", "witness.move_ipaddr.flags", FT_UINT32, BASE_HEX, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_context_handle,
+	  { "Context Handle", "witness.witness_RegisterEx.context_handle", FT_BYTES, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_notifyResponse_num_messages,
 	  { "Num Messages", "witness.witness_notifyResponse.num_messages", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_notifyResponse_message_type,
 	  { "Message Type", "witness.witness_notifyResponse.message_type", FT_UINT1632, BASE_DEC, VALS(witness_witness_notifyResponse_type_vals), 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_flags,
+	  { "Flags", "witness.witness_RegisterEx.flags", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_werror,
 	  { "Windows Error", "witness.werror", FT_UINT32, BASE_HEX, VALS(WERR_errors), 0, NULL, HFILL }},
 	{ &hf_witness_witness_Register_version,
@@ -774,6 +966,8 @@ void proto_register_dcerpc_witness(void)
 	  { "IPv6", "witness.move_ipaddr.ipv6", FT_IPv6, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_AsyncNotify_response,
 	  { "Response", "witness.witness_AsyncNotify.response", FT_NONE, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_ip_address,
+	  { "Ip Address", "witness.witness_RegisterEx.ip_address", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_opnum,
 	  { "Operation", "witness.opnum", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_version,
@@ -786,8 +980,12 @@ void proto_register_dcerpc_witness(void)
 	  { "Max Count", "dcerpc.array.max_count", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_flags_WITNESS_IF,
 	  { "Witness If", "witness.witness_interfaceInfo_flags.WITNESS_IF", FT_BOOLEAN, 32, TFS(&witness_interfaceInfo_flags_WITNESS_IF_tfs), ( 0x04 ), NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_version,
+	  { "Version", "witness.witness_RegisterEx.version", FT_UINT32, BASE_DEC, VALS(witness_witness_version_vals), 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_group_name,
 	  { "Group Name", "witness.witness_interfaceInfo.group_name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_timeout,
+	  { "Timeout", "witness.witness_RegisterEx.timeout", FT_UINT32, BASE_DEC, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_flags_IPv6_VALID,
 	  { "Ipv6 Valid", "witness.witness_interfaceInfo_flags.IPv6_VALID", FT_BOOLEAN, 32, TFS(&witness_interfaceInfo_flags_IPv6_VALID_tfs), ( 0x02 ), NULL, HFILL }},
 	{ &hf_witness_move_ipaddr_list_flags_ipv6,
@@ -802,6 +1000,12 @@ void proto_register_dcerpc_witness(void)
 	  { "Ipv4", "witness.witness_interfaceInfo.ipv4", FT_IPv4, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_change_name,
 	  { "Name", "witness.change.name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_client_computer_name,
+	  { "Client Computer Name", "witness.witness_RegisterEx.client_computer_name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_share_name,
+	  { "Share Name", "witness.witness_RegisterEx.share_name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
+	{ &hf_witness_witness_RegisterEx_net_name,
+	  { "Net Name", "witness.witness_RegisterEx.net_name", FT_STRING, BASE_NONE, NULL, 0, NULL, HFILL }},
 	{ &hf_witness_witness_interfaceInfo_state,
 	  { "State", "witness.witness_interfaceInfo.state", FT_UINT16, BASE_DEC, VALS(witness_witness_interfaceInfo_state_vals), 0, NULL, HFILL }},
 	{ &hf_witness_witness_notifyResponse_length,
