@@ -582,6 +582,16 @@ static int hf_dcerpc_fragment_count = -1;
 static int hf_dcerpc_reassembled_in = -1;
 static int hf_dcerpc_reassembled_length = -1;
 static int hf_dcerpc_unknown_if_id = -1;
+static int hf_dcerpc_sec_vt_command = -1;
+static int hf_dcerpc_sec_vt_command_cmd = -1;
+static int hf_dcerpc_sec_vt_command_end = -1;
+static int hf_dcerpc_sec_vt_command_must = -1;
+
+static const int* sec_vt_command_fields[] = {
+	&hf_dcerpc_sec_vt_command_cmd,
+	&hf_dcerpc_sec_vt_command_end,
+	&hf_dcerpc_sec_vt_command_must
+};
 
 static gint ett_dcerpc = -1;
 static gint ett_dcerpc_cn_flags = -1;
@@ -601,6 +611,7 @@ static gint ett_dcerpc_fragments = -1;
 static gint ett_dcerpc_fragment = -1;
 static gint ett_dcerpc_krb5_auth_verf = -1;
 static gint ett_dcerpc_verification_trailer = -1;
+static gint ett_dcerpc_sec_vt_command = -1;
 
 static expert_field ei_dcerpc_fragment_multiple = EI_INIT;
 static expert_field ei_dcerpc_cn_status = EI_INIT;
@@ -2554,7 +2565,11 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
         while (remaining >= 4) {
 		cmd = tvb_get_letohs(tvb, offset);
 		len = tvb_get_letohs(tvb, offset+2);
-		proto_tree_add_text(tree, tvb, offset, 2, "command: 0x%04x", cmd);
+		proto_tree_add_bitmask(tree, tvb, offset,
+				       hf_dcerpc_sec_vt_command,
+				       ett_dcerpc_sec_vt_command,
+				       sec_vt_command_fields,
+				       ENC_LITTLE_ENDIAN);
 		offset += 2;
 		proto_tree_add_text(tree, tvb, offset, 2, "length: %d", len);
 		offset += 2;
@@ -6080,6 +6095,14 @@ proto_register_dcerpc(void)
           {"Forward Destination", "dcerpc.cn_rts_command.forwarddestination", FT_UINT32, BASE_DEC, VALS(rts_forward_destination_vals), 0x0, NULL, HFILL }},
         { &hf_dcerpc_cn_rts_command_pingtrafficsentnotify,
           {"Ping Traffic Sent Notify", "dcerpc.cn_rts_command.pingtrafficsentnotify", FT_UINT32, BASE_HEX, NULL, 0x0, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_command_end,
+	  { "SEC_VT_COMMAND_END", "dcerpc.rpc_sec_vt.command.end", FT_BOOLEAN, 16, NULL, 0x4000, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_command_must,
+	  { "SEC_VT_MUST_PROCESS_COMMAND", "dcerpc.rpc_sec_vt.command.must_process", FT_BOOLEAN, 16, NULL, 0x8000, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_command_cmd,
+	  { "Command", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, NULL, 0x3fff, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_command,
+	  { "Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
     };
     static gint *ett[] = {
         &ett_dcerpc,
@@ -6100,6 +6123,7 @@ proto_register_dcerpc(void)
         &ett_dcerpc_fragment,
         &ett_dcerpc_krb5_auth_verf,
 	&ett_dcerpc_verification_trailer,
+	&ett_dcerpc_sec_vt_command,
     };
 
     static ei_register_info ei[] = {
