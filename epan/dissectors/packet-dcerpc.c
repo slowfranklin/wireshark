@@ -593,6 +593,14 @@ static const int* sec_vt_command_fields[] = {
 	&hf_dcerpc_sec_vt_command_must
 };
 
+static const value_string sec_vt_command_cmd_vals[] = {
+	{1, "SEC_VT_COMMAND_BITMASK_1"},
+	{2, "SEC_VT_COMMAND_PCONTEXT"},
+	{3, "SEC_VT_COMMAND_HEADER2"},
+	{0, NULL}
+};
+
+
 static gint ett_dcerpc = -1;
 static gint ett_dcerpc_cn_flags = -1;
 static gint ett_dcerpc_cn_ctx = -1;
@@ -6100,7 +6108,7 @@ proto_register_dcerpc(void)
 	{ &hf_dcerpc_sec_vt_command_must,
 	  { "SEC_VT_MUST_PROCESS_COMMAND", "dcerpc.rpc_sec_vt.command.must_process", FT_BOOLEAN, 16, NULL, 0x8000, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_cmd,
-	  { "Command", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, NULL, 0x3fff, NULL, HFILL }},
+	  { "Cmd", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, VALS(sec_vt_command_cmd_vals), 0x3fff, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command,
 	  { "Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
     };
