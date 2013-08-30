@@ -2732,7 +2732,7 @@ dcerpc_try_handoff(packet_info *pinfo, proto_tree *tree,
             /* If there is auth padding at the end of the stub, display it */
             if (auth_pad_len != 0) {
                 tvb_ensure_bytes_exist(tvb, auth_pad_offset, auth_pad_len);
-                proto_tree_add_text(sub_tree, decrypted_tvb, auth_pad_offset,
+                proto_tree_add_text(dcerpc_tree, decrypted_tvb, auth_pad_offset,
                                     auth_pad_len,
                                     "Auth Padding (%u byte%s)",
                                     auth_pad_len,
