@@ -586,6 +586,7 @@ static int hf_dcerpc_sec_vt_command = -1;
 static int hf_dcerpc_sec_vt_command_cmd = -1;
 static int hf_dcerpc_sec_vt_command_end = -1;
 static int hf_dcerpc_sec_vt_command_must = -1;
+static int hf_dcerpc_sec_vt_command_length = -1;
 
 static const int* sec_vt_command_fields[] = {
 	&hf_dcerpc_sec_vt_command_cmd,
@@ -2579,7 +2580,8 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 				       sec_vt_command_fields,
 				       ENC_LITTLE_ENDIAN);
 		offset += 2;
-		proto_tree_add_text(tree, tvb, offset, 2, "length: %d", len);
+		proto_tree_add_item(tree, hf_dcerpc_sec_vt_command_length, tvb,
+				    offset, 2, ENC_LITTLE_ENDIAN);
 		offset += 2;
 		proto_tree_add_text(tree, tvb, offset, len, "blob");
 		offset += len;
@@ -6111,6 +6113,8 @@ proto_register_dcerpc(void)
 	  { "Cmd", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, VALS(sec_vt_command_cmd_vals), 0x3fff, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command,
 	  { "Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_command_length,
+	  {"Length", "dcerpc.rpc_sec_vt.command.length", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL}},
     };
     static gint *ett[] = {
         &ett_dcerpc,
