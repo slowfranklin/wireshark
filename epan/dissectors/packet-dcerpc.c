@@ -600,6 +600,7 @@ static gint ett_dcerpc_string = -1;
 static gint ett_dcerpc_fragments = -1;
 static gint ett_dcerpc_fragment = -1;
 static gint ett_dcerpc_krb5_auth_verf = -1;
+static gint ett_dcerpc_verification_trailer = -1;
 
 static expert_field ei_dcerpc_fragment_multiple = EI_INIT;
 static expert_field ei_dcerpc_cn_status = EI_INIT;
@@ -2512,6 +2513,64 @@ show_stub_data(tvbuff_t *tvb, gint offset, proto_tree *dcerpc_tree,
 }
 
 static int
+dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree)
+{
+	static const guint8 TRAILER_SIGNATUR[] = {0x8a, 0xe3, 0x13, 0x71, 0x02, 0xf4, 0x36, 0x71};
+	static const guint16 SEC_VT_COMMAND_END = 0x4000;
+
+	proto_item *item;
+	proto_tree *tree;
+
+	const guint8 *start, *pos;
+	guint16 cmd, len;
+	int remaining = tvb_length_remaining(tvb, offset);
+	if (remaining <= 0) {
+		return offset;
+	}
+	start = tvb_get_ptr(tvb, offset, remaining);
+	pos = epan_memmem(start, remaining, TRAILER_SIGNATUR, sizeof(TRAILER_SIGNATUR));
+	if (!pos) {
+		return offset;
+	}
+
+	item = proto_tree_add_text(parent_tree, tvb, offset, -1, "Verification Trailer");
+	tree = proto_item_add_subtree(item, ett_dcerpc_verification_trailer);
+
+	if (pos > start) {
+		int len = pos - start;
+		proto_tree_add_text(tree, tvb, offset, len,
+				    "Padding (%d byte%s)", len, plurality(len, "", "s"));
+		offset += len;
+		remaining -= len;
+	}
+//XXX	DISSECTOR_ASSERT(offset % 4);
+
+
+	proto_tree_add_text(tree, tvb, offset, sizeof(TRAILER_SIGNATUR),
+			    "rpc_sec_verification_trailer");
+	offset += sizeof(TRAILER_SIGNATUR);
+	remaining -= sizeof(TRAILER_SIGNATUR);
+
+        while (remaining >= 4) {
+		cmd = tvb_get_letohs(tvb, offset);
+		len = tvb_get_letohs(tvb, offset+2);
+		proto_tree_add_text(tree, tvb, offset, 2, "command: 0x%04x", cmd);
+		offset += 2;
+		proto_tree_add_text(tree, tvb, offset, 2, "length: %d", len);
+		offset += 2;
+		proto_tree_add_text(tree, tvb, offset, len, "blob");
+		offset += len;
+		remaining -= (4 + len);
+		if (cmd & SEC_VT_COMMAND_END) {
+			break;
+		}
+	}
+
+	proto_item_set_end(item, tvb, offset);
+	return offset;
+}
+
+static int
 dcerpc_try_handoff(packet_info *pinfo, proto_tree *tree,
                    proto_tree *dcerpc_tree,
                    tvbuff_t *volatile tvb, tvbuff_t *decrypted_tvb,
@@ -2698,6 +2757,9 @@ dcerpc_try_handoff(packet_info *pinfo, proto_tree *tree,
 
                     offset = sub_dissect(stub_tvb, 0, pinfo, sub_tree,
                                           info, drep);
+
+                    offset = dissect_verification_trailer(stub_tvb, offset,
+							  pinfo, dcerpc_tree);
 
                     /* If we have a subdissector and it didn't dissect all
                        data in the tvb, make a note of it. */
@@ -6037,6 +6099,7 @@ proto_register_dcerpc(void)
         &ett_dcerpc_fragments,
         &ett_dcerpc_fragment,
         &ett_dcerpc_krb5_auth_verf,
+	&ett_dcerpc_verification_trailer,
     };
 
     static ei_register_info ei[] = {
