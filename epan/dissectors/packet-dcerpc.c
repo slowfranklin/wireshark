@@ -595,9 +595,9 @@ static const int* sec_vt_command_fields[] = {
 };
 
 static const value_string sec_vt_command_cmd_vals[] = {
-	{1, "SEC_VT_COMMAND_BITMASK_1"},
-	{2, "SEC_VT_COMMAND_PCONTEXT"},
-	{3, "SEC_VT_COMMAND_HEADER2"},
+	{1, "BITMASK_1"},
+	{2, "PCONTEXT"},
+	{3, "HEADER2"},
 	{0, NULL}
 };
 
@@ -6106,13 +6106,13 @@ proto_register_dcerpc(void)
         { &hf_dcerpc_cn_rts_command_pingtrafficsentnotify,
           {"Ping Traffic Sent Notify", "dcerpc.cn_rts_command.pingtrafficsentnotify", FT_UINT32, BASE_HEX, NULL, 0x0, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_end,
-	  { "SEC_VT_COMMAND_END", "dcerpc.rpc_sec_vt.command.end", FT_BOOLEAN, 16, NULL, 0x4000, NULL, HFILL }},
+	  {"SEC_VT_COMMAND_END", "dcerpc.rpc_sec_vt.command.end", FT_BOOLEAN, 16, NULL, 0x4000, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_must,
-	  { "SEC_VT_MUST_PROCESS_COMMAND", "dcerpc.rpc_sec_vt.command.must_process", FT_BOOLEAN, 16, NULL, 0x8000, NULL, HFILL }},
+	  {"SEC_VT_MUST_PROCESS_COMMAND", "dcerpc.rpc_sec_vt.command.must_process", FT_BOOLEAN, 16, NULL, 0x8000, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_cmd,
-	  { "Cmd", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, VALS(sec_vt_command_cmd_vals), 0x3fff, NULL, HFILL }},
+	  {"SEC_VT_COMMAND", "dcerpc.rpc_sec_vt.command.cmd", FT_UINT16, BASE_HEX, VALS(sec_vt_command_cmd_vals), 0x3fff, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command,
-	  { "Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
+	  {"Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_length,
 	  {"Length", "dcerpc.rpc_sec_vt.command.length", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL}},
     };
