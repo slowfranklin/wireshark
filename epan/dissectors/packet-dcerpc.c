@@ -587,11 +587,18 @@ static int hf_dcerpc_sec_vt_command_cmd = -1;
 static int hf_dcerpc_sec_vt_command_end = -1;
 static int hf_dcerpc_sec_vt_command_must = -1;
 static int hf_dcerpc_sec_vt_command_length = -1;
+static int hf_dcerpc_sec_vt_bitmask = -1;
+static int hf_dcerpc_sec_vt_bitmask_sign = -1;
 
 static const int* sec_vt_command_fields[] = {
 	&hf_dcerpc_sec_vt_command_cmd,
 	&hf_dcerpc_sec_vt_command_end,
 	&hf_dcerpc_sec_vt_command_must
+};
+
+static const int* sec_vt_bitmask_fields[] = {
+	&hf_dcerpc_sec_vt_bitmask_sign,
+	NULL
 };
 
 static const value_string sec_vt_command_cmd_vals[] = {
@@ -621,6 +628,7 @@ static gint ett_dcerpc_fragment = -1;
 static gint ett_dcerpc_krb5_auth_verf = -1;
 static gint ett_dcerpc_verification_trailer = -1;
 static gint ett_dcerpc_sec_vt_command = -1;
+static gint ett_dcerpc_sec_vt_bitmask = -1;
 
 static expert_field ei_dcerpc_fragment_multiple = EI_INIT;
 static expert_field ei_dcerpc_cn_status = EI_INIT;
@@ -2583,8 +2591,20 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 		proto_tree_add_item(tree, hf_dcerpc_sec_vt_command_length, tvb,
 				    offset, 2, ENC_LITTLE_ENDIAN);
 		offset += 2;
-		proto_tree_add_text(tree, tvb, offset, len, "blob");
-		offset += len;
+
+		switch (cmd & 0x3fff) {
+		case 1:
+			proto_tree_add_bitmask(tree, tvb, offset,
+					       hf_dcerpc_sec_vt_bitmask,
+					       ett_dcerpc_sec_vt_bitmask,
+					       sec_vt_bitmask_fields,
+					       ENC_LITTLE_ENDIAN);
+			offset += len;
+			break;
+		default:
+			proto_tree_add_text(tree, tvb, offset, len, "blob");
+			offset += len;
+		}
 		remaining -= (4 + len);
 		if (cmd & SEC_VT_COMMAND_END) {
 			break;
@@ -6115,6 +6135,10 @@ proto_register_dcerpc(void)
 	  {"Command", "dcerpc.rpc_sec_vt.command", FT_UINT16, BASE_HEX, NULL, 0, NULL, HFILL }},
 	{ &hf_dcerpc_sec_vt_command_length,
 	  {"Length", "dcerpc.rpc_sec_vt.command.length", FT_UINT16, BASE_DEC, NULL, 0, NULL, HFILL}},
+	{ &hf_dcerpc_sec_vt_bitmask,
+	  {"rpc_sec_vt_bitmask", "dcerpc.rpc_sec_vt.bitmask", FT_UINT32, BASE_HEX, NULL, 0, NULL, HFILL }},
+	{ &hf_dcerpc_sec_vt_bitmask_sign,
+	  {"CLIENT_SUPPORT_HEADER_SIGNING", "dcerpc.rpc_sec_vt.bitmask.sign", FT_BOOLEAN, 32, NULL, 0x1, NULL, HFILL }},
     };
     static gint *ett[] = {
         &ett_dcerpc,
@@ -6136,6 +6160,7 @@ proto_register_dcerpc(void)
         &ett_dcerpc_krb5_auth_verf,
 	&ett_dcerpc_verification_trailer,
 	&ett_dcerpc_sec_vt_command,
+	&ett_dcerpc_sec_vt_bitmask,
     };
 
     static ei_register_info ei[] = {
