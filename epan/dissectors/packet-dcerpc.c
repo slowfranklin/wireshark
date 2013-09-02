@@ -2553,7 +2553,7 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 	const guint8 *start, *pos;
 	guint16 cmd, len;
 	int remaining = tvb_length_remaining(tvb, offset);
-	if (remaining <= 0) {
+	if (remaining < (int)sizeof(TRAILER_SIGNATUR)) {
 		return offset;
 	}
 	start = tvb_get_ptr(tvb, offset, remaining);
@@ -2580,7 +2580,7 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 	offset += sizeof(TRAILER_SIGNATUR);
 	remaining -= sizeof(TRAILER_SIGNATUR);
 
-        while (remaining >= 4) {
+	while (remaining >= 4) {
 		cmd = tvb_get_letohs(tvb, offset);
 		len = tvb_get_letohs(tvb, offset+2);
 		proto_tree_add_bitmask(tree, tvb, offset,
