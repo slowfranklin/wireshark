@@ -633,6 +633,7 @@ static gint ett_dcerpc_verification_trailer = -1;
 static gint ett_dcerpc_sec_vt_command = -1;
 static gint ett_dcerpc_sec_vt_bitmask = -1;
 static gint ett_dcerpc_sec_vt_pcontext = -1;
+static gint ett_dcerpc_sec_vt_header = -1;
 
 static expert_field ei_dcerpc_fragment_multiple = EI_INIT;
 static expert_field ei_dcerpc_cn_status = EI_INIT;
@@ -2544,17 +2545,102 @@ show_stub_data(tvbuff_t *tvb, gint offset, proto_tree *dcerpc_tree,
     }
 }
 
+static void
+dissect_sec_vt_bitmask(proto_tree *tree, tvbuff_t *tvb, int offset)
+{
+	proto_tree_add_bitmask(tree, tvb, offset,
+			       hf_dcerpc_sec_vt_bitmask,
+			       ett_dcerpc_sec_vt_bitmask,
+			       sec_vt_bitmask_fields,
+			       ENC_LITTLE_ENDIAN);
+}
+
+static void
+dissect_sec_vt_pcontext(proto_tree *tree, tvbuff_t *tvb, int offset)
+{
+	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "pcontext");
+	proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_pcontext);
+	e_guid_t uuid;
+	const char *uuid_name;
+
+	tvb_get_letohguid(tvb, offset, &uuid);
+	uuid_name = guids_get_uuid_name(&uuid);
+	if (!uuid_name) {
+		uuid_name = guid_to_str(&uuid);
+	}
+
+	proto_tree_add_guid_format(tr, hf_dcerpc_sec_vt_pcontext_uuid, tvb,
+				   offset, 16, &uuid, "Abstract Syntax: %s", uuid_name);
+	offset += 16;
+
+	proto_tree_add_item(tr, hf_dcerpc_sec_vt_pcontext_ver,
+			    tvb, offset, 4, ENC_LITTLE_ENDIAN);
+	offset += 4;
+
+	tvb_get_letohguid(tvb, offset, &uuid);
+	uuid_name = guids_get_uuid_name(&uuid);
+	if (!uuid_name) {
+		uuid_name = guid_to_str(&uuid);
+	}
+
+	proto_tree_add_guid_format(tr, hf_dcerpc_sec_vt_pcontext_uuid, tvb,
+				   offset, 16, &uuid, "Transfer Syntax: %s", uuid_name);
+	offset += 16;
+
+	proto_tree_add_item(tr, hf_dcerpc_sec_vt_pcontext_ver,
+			    tvb, offset, 4, ENC_LITTLE_ENDIAN);
+	offset += 4;
+	proto_item_set_end(ti, tvb, offset);
+}
+
+static void
+dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
+{
+	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "header2");
+	proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_header);
+	guint8 ptype = tvb_get_guint8(tvb, offset);
+
+	proto_tree_add_uint(tr, hf_dcerpc_packet_type, tvb, offset, 1, ptype);
+	offset ++;
+
+	proto_tree_add_text(tr, tvb, offset, 1, "Reserved1");
+	offset ++;
+
+	proto_tree_add_text(tr, tvb, offset, 2, "Reserved2");
+	offset += 2;
+
+	proto_tree_add_text(tr, tvb, offset, 4, "drep");
+	offset += 4;
+
+	proto_tree_add_text(tr, tvb, offset, 4, "call_id");
+	offset += 4;
+
+	proto_tree_add_text(tr, tvb, offset, 2, "p_cont_id");
+	offset += 2;
+
+	proto_tree_add_text(tr, tvb, offset, 4, "opnum");
+	offset += 2;
+
+	proto_item_set_end(ti, tvb, offset);
+}
+
 static int
 dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree)
 {
 	static const guint8 TRAILER_SIGNATUR[] = {0x8a, 0xe3, 0x13, 0x71, 0x02, 0xf4, 0x36, 0x71};
-	static const guint16 SEC_VT_COMMAND_END = 0x4000;
+	typedef enum {
+		SEC_VT_COMMAND_BITMASK_1    = 0x0001,
+		SEC_VT_COMMAND_PCONTEXT     = 0x0002,
+		SEC_VT_COMMAND_HEADER2      = 0x0003,
+		SEC_VT_COMMAND_END          = 0x4000,
+		SEC_VT_MUST_PROCESS_COMMAND = 0x8000,
+		SEC_VT_COMMAND_MASK         = 0x3fff,
+	} sec_vt_command;
 
 	proto_item *item;
 	proto_tree *tree;
 
 	const guint8 *start, *pos;
-	guint16 cmd, len;
 	int remaining = tvb_length_remaining(tvb, offset);
 	if (remaining < (int)sizeof(TRAILER_SIGNATUR)) {
 		return offset;
@@ -2575,8 +2661,6 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 		offset += len;
 		remaining -= len;
 	}
-//XXX	DISSECTOR_ASSERT(offset % 4);
-
 
 	proto_tree_add_text(tree, tvb, offset, sizeof(TRAILER_SIGNATUR),
 			    "rpc_sec_verification_trailer");
@@ -2584,69 +2668,59 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 	remaining -= sizeof(TRAILER_SIGNATUR);
 
 	while (remaining >= 4) {
+		sec_vt_command cmd;
+		guint16 len;
+		gboolean cmd_end, cmd_must;
+
+		proto_item *ti;
+		proto_tree *tr;
 		cmd = tvb_get_letohs(tvb, offset);
-		len = tvb_get_letohs(tvb, offset+2);
-		proto_tree_add_bitmask(tree, tvb, offset,
+		len = tvb_get_letohs(tvb, offset + 2);
+		cmd_end = cmd & SEC_VT_COMMAND_END;
+		cmd_must = cmd & SEC_VT_MUST_PROCESS_COMMAND;
+		cmd &= SEC_VT_COMMAND_MASK;
+
+		ti = proto_tree_add_text(tree, tvb, offset, -1, "Command: %s",
+						     val_to_str(cmd, sec_vt_command_cmd_vals,
+								"Unknown (0x%04x)"));
+		tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_pcontext);
+
+		if (cmd_must) {
+			proto_item_append_text(ti, "!!!");
+		}
+		if (cmd_end) {
+			proto_item_append_text(ti, ", END");
+		}
+
+		proto_tree_add_bitmask(tr, tvb, offset,
 				       hf_dcerpc_sec_vt_command,
 				       ett_dcerpc_sec_vt_command,
 				       sec_vt_command_fields,
 				       ENC_LITTLE_ENDIAN);
 		offset += 2;
-		proto_tree_add_item(tree, hf_dcerpc_sec_vt_command_length, tvb,
+
+		proto_tree_add_item(tr, hf_dcerpc_sec_vt_command_length, tvb,
 				    offset, 2, ENC_LITTLE_ENDIAN);
 		offset += 2;
 
-		switch (cmd & 0x3fff) {
-		case 1:
-			proto_tree_add_bitmask(tree, tvb, offset,
-					       hf_dcerpc_sec_vt_bitmask,
-					       ett_dcerpc_sec_vt_bitmask,
-					       sec_vt_bitmask_fields,
-					       ENC_LITTLE_ENDIAN);
-			offset += len;
+		switch (cmd) {
+		case SEC_VT_COMMAND_BITMASK_1:
+			dissect_sec_vt_bitmask(tr, tvb, offset);
 			break;
-		case 2:
-		{
-			proto_item *ti = proto_tree_add_text(tree, tvb, offset, len, "pcontext");
-			proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_pcontext);
-			e_guid_t uuid;
-			const char *uuid_name;
-
-			tvb_get_letohguid(tvb, offset, &uuid);
-			uuid_name = guids_get_uuid_name(&uuid);
-			if (!uuid_name) {
-				uuid_name = guid_to_str(&uuid);
-			}
-
-			proto_tree_add_guid_format(tr, hf_dcerpc_sec_vt_pcontext_uuid, tvb,
-						   offset, 16, &uuid, "Abstract Syntax: %s", uuid_name);
-			offset += 16;
-
-			proto_tree_add_item(tr, hf_dcerpc_sec_vt_pcontext_ver,
-					    tvb, offset, 4, ENC_LITTLE_ENDIAN);
-			offset += 4;
-
-			tvb_get_letohguid(tvb, offset, &uuid);
-			uuid_name = guids_get_uuid_name(&uuid);
-			if (!uuid_name) {
-				uuid_name = guid_to_str(&uuid);
-			}
-
-			proto_tree_add_guid_format(tr, hf_dcerpc_sec_vt_pcontext_uuid, tvb,
-						   offset, 16, &uuid, "Transfer Syntax: %s", uuid_name);
-			offset += 16;
-
-			proto_tree_add_item(tr, hf_dcerpc_sec_vt_pcontext_ver,
-					    tvb, offset, 4, ENC_LITTLE_ENDIAN);
-			offset += 4;
-
+		case SEC_VT_COMMAND_PCONTEXT:
+			dissect_sec_vt_pcontext(tr, tvb, offset);
 			break;
-		}
+		case SEC_VT_COMMAND_HEADER2:
+			dissect_sec_vt_header(tr, tvb, offset);
+			break;
 		default:
-			proto_tree_add_text(tree, tvb, offset, len, "blob");
-			offset += len;
+			proto_tree_add_text(tr, tvb, offset, len, "blob");
 		}
+
+		offset += len;
 		remaining -= (4 + len);
+		proto_item_set_end(ti, tvb, offset);
+
 		if (cmd & SEC_VT_COMMAND_END) {
 			break;
 		}
@@ -6208,6 +6282,7 @@ proto_register_dcerpc(void)
 	&ett_dcerpc_sec_vt_command,
 	&ett_dcerpc_sec_vt_bitmask,
 	&ett_dcerpc_sec_vt_pcontext,
+	&ett_dcerpc_sec_vt_header,
     };
 
     static ei_register_info ei[] = {
