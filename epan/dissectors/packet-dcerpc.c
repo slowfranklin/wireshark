@@ -593,7 +593,8 @@ static int hf_dcerpc_sec_vt_bitmask_sign = -1;
 static const int* sec_vt_command_fields[] = {
 	&hf_dcerpc_sec_vt_command_cmd,
 	&hf_dcerpc_sec_vt_command_end,
-	&hf_dcerpc_sec_vt_command_must
+	&hf_dcerpc_sec_vt_command_must,
+	NULL
 };
 
 static const int* sec_vt_bitmask_fields[] = {
