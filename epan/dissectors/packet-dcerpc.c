@@ -920,6 +920,26 @@ static void dissect_auth_verf(tvbuff_t *auth_tvb, packet_info *pinfo,
     }
 }
 
+static proto_item*
+proto_tree_add_dcerpc_drep(proto_tree *tree, tvbuff_t *tvb, int offset, guint8 drep[], int drep_len)
+{
+	const guint8 byteorder = drep[0] >> 4;
+	const guint8 character = drep[0] & 0x0f;
+	const guint8 fp = drep[1];
+	proto_item *ti = proto_tree_add_bytes(tree, hf_dcerpc_drep, tvb, offset, drep_len, drep);
+	proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_drep);
+
+	proto_tree_add_uint(tr, hf_dcerpc_drep_byteorder, tvb, offset, 1, byteorder);
+	proto_tree_add_uint(tr, hf_dcerpc_drep_character, tvb, offset, 1, character);
+	proto_tree_add_uint(tr, hf_dcerpc_drep_fp, tvb, offset+1, 1, fp);
+
+	proto_item_append_text(ti, " (Order: %s, Char: %s, Float: %s)",
+			       val_to_str(byteorder, drep_byteorder_vals, "Unknown (%u)"),
+			       val_to_str(character, drep_character_vals, "Unknown (%u)"),
+			       val_to_str(fp, drep_fp_vals, "Unknown (%u)"));
+	return ti;
+}
+
 /* Hand off payload data to a registered dissector */
 
 static tvbuff_t *decode_encrypted_data(tvbuff_t *data_tvb,
@@ -4666,7 +4686,6 @@ dissect_dcerpc_cn(tvbuff_t *tvb, int offset, packet_info *pinfo,
     proto_item            *tf            = NULL;
     proto_tree            *dcerpc_tree   = NULL;
     proto_tree            *cn_flags_tree = NULL;
-    proto_tree            *drep_tree     = NULL;
     e_dce_cn_common_hdr_t  hdr;
     dcerpc_auth_info       auth_info;
     tvbuff_t              *fragment_tvb;
@@ -4792,13 +4811,7 @@ dissect_dcerpc_cn(tvbuff_t *tvb, int offset, packet_info *pinfo,
 
     col_append_fstr(pinfo->cinfo, COL_INFO, ", Fragment: %s", fragment_type(hdr.flags));
 
-    if (dcerpc_tree) {
-        tf = proto_tree_add_bytes(dcerpc_tree, hf_dcerpc_drep, tvb, offset, 4, hdr.drep);
-        drep_tree = proto_item_add_subtree(tf, ett_dcerpc_drep);
-    }
-    proto_tree_add_uint(drep_tree, hf_dcerpc_drep_byteorder, tvb, offset, 1, hdr.drep[0] >> 4);
-    proto_tree_add_uint(drep_tree, hf_dcerpc_drep_character, tvb, offset, 1, hdr.drep[0] & 0x0f);
-    proto_tree_add_uint(drep_tree, hf_dcerpc_drep_fp, tvb, offset+1, 1, hdr.drep[1]);
+    proto_tree_add_dcerpc_drep(dcerpc_tree, tvb, offset, hdr.drep, sizeof (hdr.drep));
     offset += (int)sizeof (hdr.drep);
 
     proto_tree_add_uint(dcerpc_tree, hf_dcerpc_cn_frag_len, tvb, offset, 2, hdr.frag_len);
@@ -5533,7 +5546,6 @@ dissect_dcerpc_dg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
     proto_tree            *dcerpc_tree    = NULL;
     proto_tree            *dg_flags1_tree = NULL;
     proto_tree            *dg_flags2_tree = NULL;
-    proto_tree            *drep_tree      = NULL;
     e_dce_dg_common_hdr_t  hdr;
     int                    offset         = 0;
     conversation_t        *conv;
@@ -5671,19 +5683,7 @@ dissect_dcerpc_dg(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *dat
     }
     offset++;
 
-    if (tree) {
-        tf = proto_tree_add_bytes(dcerpc_tree, hf_dcerpc_drep, tvb, offset, sizeof (hdr.drep), hdr.drep);
-        drep_tree = proto_item_add_subtree(tf, ett_dcerpc_drep);
-        if (drep_tree) {
-            proto_tree_add_uint(drep_tree, hf_dcerpc_drep_byteorder, tvb, offset, 1, hdr.drep[0] >> 4);
-            proto_tree_add_uint(drep_tree, hf_dcerpc_drep_character, tvb, offset, 1, hdr.drep[0] & 0x0f);
-            proto_tree_add_uint(drep_tree, hf_dcerpc_drep_fp, tvb, offset+1, 1, hdr.drep[1]);
-            proto_item_append_text(tf, " (Order: %s, Char: %s, Float: %s)",
-                                   val_to_str_const(hdr.drep[0] >> 4, drep_byteorder_vals, "Unknown"),
-                                   val_to_str_const(hdr.drep[0] & 0x0f, drep_character_vals, "Unknown"),
-                                   val_to_str_const(hdr.drep[1], drep_fp_vals, "Unknown"));
-        }
-    }
+    proto_tree_add_dcerpc_drep(dcerpc_tree, tvb, offset, hdr.drep, sizeof (hdr.drep));
     offset += (int)sizeof (hdr.drep);
 
     if (tree)
