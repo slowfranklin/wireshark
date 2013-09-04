@@ -2618,6 +2618,7 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 {
 	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "header2");
 	proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_header);
+	guint32 drep;
 	guint8 ptype = tvb_get_guint8(tvb, offset);
 
 	proto_tree_add_uint(tr, hf_dcerpc_packet_type, tvb, offset, 1, ptype);
@@ -2629,7 +2630,8 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 	proto_tree_add_text(tr, tvb, offset, 2, "Reserved2");
 	offset += 2;
 
-	proto_tree_add_text(tr, tvb, offset, 4, "drep");
+	drep = tvb_get_letohl(tvb, offset); //??? dcerpc_tvb_get_ntohl
+	proto_tree_add_dcerpc_drep(tr, tvb, offset, (guint8*)&drep, 4);
 	offset += 4;
 
 	proto_tree_add_text(tr, tvb, offset, 4, "call_id");
