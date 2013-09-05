@@ -2619,6 +2619,7 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 	proto_item *ti = proto_tree_add_text(tree, tvb, offset, -1, "header2");
 	proto_tree *tr = proto_item_add_subtree(ti, ett_dcerpc_sec_vt_header);
 	guint32 drep, call_id;
+	guint16 cont_id, opnum;
 	guint8 ptype = tvb_get_guint8(tvb, offset);
 
 	proto_tree_add_uint(tr, hf_dcerpc_packet_type, tvb, offset, 1, ptype);
@@ -2639,10 +2640,14 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 	proto_tree_add_uint(tr, hf_dcerpc_cn_call_id, tvb, offset, 4, call_id);
 	offset += 4;
 
-	proto_tree_add_text(tr, tvb, offset, 2, "p_cont_id");
+//??? dissect_dcerpc_uint16
+	cont_id = tvb_get_letohs(tvb, offset); //??? dcerpc_tvb_get_ntohs
+	proto_tree_add_uint(tr, hf_dcerpc_cn_ctx_id, tvb, offset, 2, cont_id);
 	offset += 2;
 
-	proto_tree_add_text(tr, tvb, offset, 4, "opnum");
+//??? dissect_dcerpc_uint16
+	opnum = tvb_get_letohs(tvb, offset); //??? dcerpc_tvb_get_ntohs
+	proto_tree_add_uint(tr, hf_dcerpc_opnum, tvb, offset, 2, cont_id);
 	offset += 2;
 
 	proto_item_set_end(ti, tvb, offset);
