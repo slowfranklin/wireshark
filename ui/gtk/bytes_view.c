@@ -481,8 +481,7 @@ bytes_view_flush_render(BytesView *bv, void *data, int x, int y, const char *str
 
 		/* background */
 #if GTK_CHECK_VERSION(3, 0, 0)
-		//	gtk_style_context_get_background_color(context, (GtkStateFlags)( (bv->state == GTK_STATE_SELECTED ? GTK_STATE_FLAG_FOCUSED : 0) | GTK_STATE_FLAG_SELECTED), &bg_color);
-		gtk_style_context_get_background_color(context, (GtkStateFlags)(GTK_STATE_FLAG_FOCUSED | GTK_STATE_FLAG_SELECTED), &bg_color);
+		gtk_style_context_get_background_color(context, (GtkStateFlags)( (bv->state == GTK_STATE_SELECTED ? GTK_STATE_FLAG_FOCUSED : 0) | GTK_STATE_FLAG_SELECTED), &bg_color);
 		gdk_cairo_set_source_rgba(cr, &bg_color);
 #else
 		gdk_cairo_set_source_color(cr, &gtk_widget_get_style(GTK_WIDGET(bv))->base[bv->state]);
