@@ -178,3 +178,5 @@ packaging/macosx/Wireshark_package.pmdoc/index.xml
 packaging/rpm/SPECS/wireshark.spec
 packaging/svr4/checkinstall
 packaging/svr4/pkginfo
+
+build-*
