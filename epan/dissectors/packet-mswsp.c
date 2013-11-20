@@ -869,7 +869,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
 
     if (v->kind == PRSPEC_LPWSTR) {
         int len = 2*v->u.propid;
-        v->u.name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
+        v->u.name = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "name: \"%s\"", v->u.name);
         offset += len;
     }
@@ -1003,7 +1003,7 @@ static int parse_CContentRestriction(tvbuff_t *tvb, int offset, proto_tree *pare
     offset += 4;
 
 //    str = tvb_get_ephemeral_string_enc(tvb, offset, 2*cc, ENC_UTF_16);
-    str = tvb_get_unicode_string(tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
+    str = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
     v->phrase = se_strdup(str);
     proto_tree_add_text(tree, tvb, offset, 2*cc, "phrase: %s", str);
     offset += 2*cc;
@@ -1047,7 +1047,7 @@ int parse_CNatLanguageRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_
     offset += 4;
 
 //    str = tvb_get_ephemeral_string_enc(tvb, offset, 2*cc, ENC_UTF_16);
-    str = tvb_get_unicode_string(tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
+    str = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, 2*cc, ENC_LITTLE_ENDIAN);
     v->phrase = se_strdup(str);
     proto_tree_add_text(tree, tvb, offset, 2*cc, "phrase: %s", str);
     offset += 2*cc;
@@ -1328,7 +1328,7 @@ static int vvalue_tvb_lpstr(tvbuff_t *tvb , int offset, void *val)
     gint len;
 
     str->len = tvb_get_letohl(tvb, offset);
-    str->str = tvb_get_seasonal_stringz(tvb, offset + 4, &len);
+    str->str = tvb_get_stringz(wmem_packet_scope(), tvb, offset + 4, &len);
     /* XXX test str->len == len */
     return 4 + len;
 }
@@ -1341,7 +1341,7 @@ static int vvalue_tvb_lpwstr(tvbuff_t *tvb , int offset, void *val)
 
     str->len = tvb_get_letohl(tvb, offset);
 
-    ptr = tvb_get_ephemeral_unicode_stringz(tvb, offset + 4, &len, ENC_LITTLE_ENDIAN);
+    ptr = tvb_get_unicode_stringz(wmem_packet_scope(), tvb, offset + 4, &len, ENC_LITTLE_ENDIAN);
     str->str = se_strdup (ptr);
 
     return 4 + len;
@@ -1691,7 +1691,7 @@ static int parse_CDbColId(tvbuff_t *tvb, int offset, proto_tree *parent_tree, pr
     if (eKind == DBKIND_GUID_NAME) {
         char *name;
         int len = ulId; //*2 ???
-        name = tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN);
+        name = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, len, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, len, "vString: \"%s\"", name);
         proto_item_append_text(tree_item, " \"%s\"", name);
         offset += len;
@@ -1893,7 +1893,7 @@ int parse_RANGEBOUNDARY(tvbuff_t *tvb, int offset, proto_tree *parent_tree,
         proto_tree_add_text(tree, tvb, offset, 4, "ccLabel: %u", ccLabel);
         offset += 4;
 
-        label = tvb_get_unicode_string(tvb, offset, 2*ccLabel, ENC_LITTLE_ENDIAN);
+        label = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, 2*ccLabel, ENC_LITTLE_ENDIAN);
         proto_tree_add_text(tree, tvb, offset, 2*ccLabel, "Label: \"%s\"", label);
         proto_item_append_text(item, " Label: \"%s\"", label);
         offset += 2*ccLabel;
@@ -1994,7 +1994,7 @@ static int parse_CAggregSpec(tvbuff_t *tvb, int offset,
     proto_tree_add_text(tree, tvb, offset, 1, "ccAlias: %u", ccAlias);
     offset += 4;
 
-    alias = tvb_get_unicode_string(tvb, offset, 2*ccAlias, ENC_LITTLE_ENDIAN);
+    alias = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, 2*ccAlias, ENC_LITTLE_ENDIAN);
     proto_tree_add_text(tree, tvb, offset, 2*ccAlias, "Alias: %s", alias);
     offset += 2*ccAlias;
 
@@ -2406,13 +2406,13 @@ static int dissect_CPMConnect(tvbuff_t *tvb, packet_info *pinfo, proto_tree *par
                                  offset, len, ENC_UTF_16);
         /*This shouldnt be necessary, is this a bug or is there some GUI setting I've missed?*/
         proto_item_set_text(ti, "Remote machine: %s",
-                            tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
+                            tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
         len = tvb_unicode_strsize(tvb, offset);
         ti = proto_tree_add_item(tree, hf_mswsp_msg_ConnectIn_UserName, tvb,
                                  offset, len, ENC_UTF_16);
-        proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(tvb, offset, len, ENC_LITTLE_ENDIAN));
+        proto_item_set_text(ti, "User: %s", tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, len, ENC_LITTLE_ENDIAN));
         offset += len;
 
         offset = parse_padding(tvb, offset, 8, pad_tree, "_paddingcPropSets");

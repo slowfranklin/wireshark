@@ -1,4 +1,5 @@
 #include "packet-smb-common.h"
+#include "to_str.h"
 
 struct notify_response {
 	guint32 length;
@@ -104,7 +105,7 @@ static int witness_dissect_resource_change(tvbuff_t *tvb, int offset, packet_inf
 	proto_tree_add_item(tr, hf_witness_change_type, tvb, offset, 4, ENC_LITTLE_ENDIAN);
 	offset += 4;
 
-	name = tvb_get_ephemeral_unicode_string(tvb, offset, length-8, ENC_LITTLE_ENDIAN);
+	name = tvb_get_unicode_string(wmem_packet_scope(), tvb, offset, length-8, ENC_LITTLE_ENDIAN);
 	proto_tree_add_string(tr, hf_witness_change_name, tvb, offset, length-8, name);
 
 	proto_item_append_text(ti, ": %s -> %s", name,
