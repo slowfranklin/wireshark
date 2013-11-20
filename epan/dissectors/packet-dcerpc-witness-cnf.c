@@ -162,11 +162,10 @@ witness_dissect_notifyResponse_message(tvbuff_t *tvb, int offset, packet_info *p
 
 static int
 dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
-		     proto_tree *tree, guint8 *drep,
+		     proto_tree *tree, dcerpc_info *di, guint8 *drep,
 		     int (*dissect)(tvbuff_t *, int, packet_info*, proto_tree*, void*),
 		     void *private_data)
 {
-	dcerpc_info *di = pinfo->private_data;
 	const int old_offset = offset;
 	int conformance_size = di->call_data->flags & DCERPC_IS_NDR64 ? 8 : 4;
 
@@ -206,7 +205,7 @@ dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
 static int
 witness_dissect_element_notifyResponse_message_buffer_(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, dcerpc_info* di, guint8 *drep)
 {
-	offset = dissect_ndr_ucbuffer(tvb, offset, pinfo, tree, drep, witness_dissect_notifyResponse_message, di->private_data);
+	offset = dissect_ndr_ucbuffer(tvb, offset, pinfo, tree, di, drep, witness_dissect_notifyResponse_message, di->private_data);
 
 	return offset;
 }
