@@ -38,7 +38,7 @@ struct data_blob {
 };
 
 struct data_str {
-	char *str;
+	const char *str;
 	guint32 len;
 };
 
