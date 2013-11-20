@@ -175,7 +175,7 @@ dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
 
 		/* conformant run, just dissect the max_count header */
 		di->conformant_run = 0;
-		offset = dissect_ndr_uint3264(tvb, offset, pinfo, tree, drep,
+		offset = dissect_ndr_uint3264(tvb, offset, pinfo, tree, di, drep,
 					      hf_dcerpc_array_max_count, &val);
 		di->array_max_count = (gint32)val;
 		di->array_max_count_offset = offset-conformance_size;
@@ -204,20 +204,18 @@ dissect_ndr_ucbuffer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
 }
 
 static int
-witness_dissect_element_notifyResponse_message_buffer_(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, guint8 *drep _U_)
+witness_dissect_element_notifyResponse_message_buffer_(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, dcerpc_info* di, guint8 *drep)
 {
-	dcerpc_info *di = pinfo->private_data;
 	offset = dissect_ndr_ucbuffer(tvb, offset, pinfo, tree, drep, witness_dissect_notifyResponse_message, di->private_data);
 
 	return offset;
 }
 
 int
-witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *parent_tree, guint8 *drep, int hf_index, guint32 param _U_)
+witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *parent_tree, dcerpc_info* di, guint8 *drep, int hf_index, guint32 param _U_)
 {
 	proto_item *item = NULL;
 	proto_tree *tree = NULL;
-	dcerpc_info *di = pinfo->private_data;
 	const int old_offset = offset;
 
 	struct notify_response response;
@@ -229,12 +227,12 @@ witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pi
 		tree = proto_item_add_subtree(item, ett_witness_witness_notifyResponse);
 	}
 
-	offset = witness_dissect_enum_notifyResponse_type(tvb, offset, pinfo, tree, drep,
+	offset = witness_dissect_enum_notifyResponse_type(tvb, offset, pinfo, tree, di, drep,
 							  hf_witness_witness_notifyResponse_message_type, &response.type);
 
-	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_notifyResponse_length, &response.length);
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_witness_witness_notifyResponse_length, &response.length);
 
-	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, drep, hf_witness_witness_notifyResponse_num_messages, &response.num);
+	offset = dissect_ndr_uint32(tvb, offset, pinfo, tree, di, drep, hf_witness_witness_notifyResponse_num_messages, &response.num);
 
 	if (!di->conformant_run) {
 		if (di->private_data) {
@@ -244,7 +242,7 @@ witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pi
 		}
 	}
 
-	offset = witness_dissect_element_notifyResponse_message_buffer(tvb, offset, pinfo, tree, drep);
+	offset = witness_dissect_element_notifyResponse_message_buffer(tvb, offset, pinfo, tree, di, drep);
 
 	proto_item_set_len(item, offset-old_offset);
 
@@ -256,7 +254,7 @@ witness_dissect_struct_notifyResponse(tvbuff_t *tvb, int offset, packet_info *pi
 }
 
 static int
-witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree, guint8 *drep _U_)
+witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree, dcerpc_info *di _U_, guint8 *drep _U_)
 {
 	const gchar *str;
 	int len = 260;
@@ -337,7 +335,7 @@ PIDL_dissect_ipv6address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 
 
 int
-witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep, int hf_index, guint32* param _U_)
+witness_dissect_enum_interfaceInfo_state(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, dcerpc_info *di, guint8 *drep, int hf_index, guint32* param _U_)
 {
-	return PIDL_dissect_uint16(tvb, offset, pinfo, tree, drep, hf_index, PIDL_SET_COL_INFO);
+	return PIDL_dissect_uint16(tvb, offset, pinfo, tree, di, drep, hf_index, PIDL_SET_COL_INFO);
 }
