@@ -874,7 +874,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
         offset += len;
     }
 
-    id_str = pset ? match_strval(v->u.propid, pset->id_map) : NULL;
+    id_str = pset ? try_val_to_str(v->u.propid, pset->id_map) : NULL;
 
     if (id_str) {
         proto_item_append_text(item, ": %s", id_str);
