@@ -2649,6 +2649,7 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 	opnum = tvb_get_letohs(tvb, offset); //??? dcerpc_tvb_get_ntohs
 	proto_tree_add_uint(tr, hf_dcerpc_opnum, tvb, offset, 2, cont_id);
 	offset += 2;
+        (void)opnum; //XXX
 
 	proto_item_set_end(ti, tvb, offset);
 }
