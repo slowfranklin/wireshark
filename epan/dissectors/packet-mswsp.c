@@ -859,7 +859,7 @@ static int parse_CFullPropSpec(tvbuff_t *tvb, int offset,
     offset = parse_guid(tvb, offset, tree, &v->guid, "GUID");
     pset = GuidPropertySet_find_guid(&v->guid);
 
-    v->kind = tvb_get_letohl(tvb, offset);
+    v->kind = (enum PRSPEC_Kind)tvb_get_letohl(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 4, "ulKind: %s ", val_to_str(v->kind, KIND, "(Unknown: 0x%x)"));
     offset += 4;
 
@@ -932,7 +932,7 @@ static int parse_CPropertyRestriction(tvbuff_t *tvb, int offset, proto_tree *par
 
     tree = proto_item_add_subtree(item, ett_CPropertyRestriction);
 
-    v->relop = tvb_get_letohl(tvb, offset);
+    v->relop = (enum relop)tvb_get_letohl(tvb, offset);
     str = val_to_str(v->relop, PR_VALS, "0x%04x");
     proto_tree_add_text(tree, tvb, offset, 4, "relop: %s (0x%04x)",
                         str[0]=='\0' ? "" : str, v->relop);
@@ -1105,6 +1105,8 @@ static value_string RT_VALS[] =  {
     {RTPhrase, "RTInternalProp"},
 };
 
+#define EP_ALLOC(T) (T*)ep_alloc(sizeof(T))
+
 static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree, proto_tree *pad_tree,
                               struct CRestriction *v, const char *fmt, ...)
 {
@@ -1120,7 +1122,7 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
     tree = proto_item_add_subtree(item, ett_CRestriction);
 
 
-    v->ulType = tvb_get_letohl(tvb, offset);
+    v->ulType = (enum rType)tvb_get_letohl(tvb, offset);
     str = val_to_str(v->ulType, RT_VALS, "0x%.8x");
     proto_tree_add_text(tree, tvb, offset, 4, "ulType: %s (0x%.8x)",
                              str[0] == '0' ? "" : str, v->ulType);
@@ -1139,20 +1141,20 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
     case RTProximity:
     case RTPhrase:
     {
-        v->u.RTAnd = ep_alloc(sizeof(struct CNodeRestriction)); //XXX
+        v->u.RTAnd = EP_ALLOC(struct CNodeRestriction); //XXX
         offset = parse_CNodeRestriction(tvb, offset, tree, pad_tree, v->u.RTAnd, "CNodeRestriction");
         break;
     }
     case RTNot:
     {
-        v->u.RTNot = ep_alloc(sizeof(struct CRestriction)); //XXX
+        v->u.RTNot = EP_ALLOC(struct CRestriction); //XXX
         offset = parse_CRestriction(tvb, offset, tree, pad_tree,
                                     v->u.RTNot, "CRestriction");
         break;
     }
     case RTProperty:
     {
-        v->u.RTProperty = ep_alloc(sizeof(struct CPropertyRestriction)); //XXX
+        v->u.RTProperty = EP_ALLOC(struct CPropertyRestriction); //XXX
         offset = parse_CPropertyRestriction(tvb, offset, tree, pad_tree,
                                             v->u.RTProperty, "CPropertyRestriction");
         break;
@@ -1161,25 +1163,25 @@ static int parse_CRestriction(tvbuff_t *tvb, int offset, proto_tree *parent_tree
     case RTCoerce_Multiply:
     case RTCoerce_Absolute:
     {
-        v->u.RTCoerce_Add = ep_alloc(sizeof(struct CCoercionRestriction)); //XXX
+        v->u.RTCoerce_Add = EP_ALLOC(struct CCoercionRestriction); //XXX
         offset = parse_CCoercionRestriction(tvb, offset, tree, pad_tree,
                                             v->u.RTCoerce_Add, "CCoercionRestriction");
         break;
     }
     case RTContent: {
-        v->u.RTContent = ep_alloc(sizeof(struct CContentRestriction)); //XXX
+        v->u.RTContent = EP_ALLOC(struct CContentRestriction); //XXX
         offset = parse_CContentRestriction(tvb, offset, tree, pad_tree,
                                            v->u.RTContent, "CContentRestriction");
         break;
     }
     case RTReuseWhere: {
-        v->u.RTReuseWhere = ep_alloc(sizeof(struct CReuseWhere)); //XXX
+        v->u.RTReuseWhere = EP_ALLOC(struct CReuseWhere); //XXX
         offset = parse_CReuseWhere(tvb, offset, tree, pad_tree,
                                    v->u.RTReuseWhere, "CReuseWhere");
         break;
     }
     case RTNatLanguage: {
-        v->u.RTNatLanguage = ep_alloc(sizeof(struct CNatLanguageRestriction)); //XXX
+        v->u.RTNatLanguage = EP_ALLOC(struct CNatLanguageRestriction); //XXX
         offset = parse_CNatLanguageRestriction(tvb, offset, tree, pad_tree,
                                    v->u.RTNatLanguage, "CNatLanguageRestriction");
         break;
@@ -1305,7 +1307,7 @@ static int vvalue_tvb_blob(tvbuff_t *tvb , int offset, void *val)
     const guint8 *data = tvb_get_ptr(tvb, offset + 4, len);
 
     blob->size = len;
-    blob->data = se_memdup(data, len);
+    blob->data = (guint8*)se_memdup(data, len);
 
     return 4 + len;
 }
@@ -1314,7 +1316,7 @@ static int vvalue_tvb_bstr(tvbuff_t *tvb , int offset, void *val)
 {
     struct data_str *str = (struct data_str*)val;
     guint32 len = tvb_get_letohl(tvb, offset);
-    const void *ptr = tvb_get_ptr(tvb, offset + 4, len);
+    const gchar *ptr = (const gchar*)tvb_get_ptr(tvb, offset + 4, len);
 
 //XXX this might be UTF-16
     str->len = len;
@@ -1352,7 +1354,7 @@ static int vvalue_tvb_vector_internal(tvbuff_t *tvb , int offset, struct vt_vect
     const int offset_in = offset;
     const gboolean varsize = (type->size == -1);
     const int elsize = varsize ? (int)sizeof(struct data_blob) : type->size;
-    guint8 *data = se_alloc(elsize * num);
+    guint8 *data = (guint8*)se_alloc(elsize * num);
     int len, i;
 
     val->len = num;
@@ -1518,7 +1520,7 @@ static struct vtype VT_TYPE[] = {
 
 static struct vtype *vType_get_type(enum vType t) {
     unsigned i;
-    t &= 0xFF;
+    t = (enum vType)(t & 0xFF);
     for (i=0; i<array_length(VT_TYPE); i++) {
         if (t == VT_TYPE[i].tag) {
             return &VT_TYPE[i];
@@ -1578,7 +1580,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
     ti = proto_tree_add_text(parent_tree, tvb, offset, 0, "%s", text);
     tree = proto_item_add_subtree(ti, ett_CBaseStorageVariant);
 
-    value->vType = tvb_get_letohs(tvb, offset);
+    value->vType = (enum vType)tvb_get_letohs(tvb, offset);
     value->type = vType_get_type(value->vType);
 
     ti_type = proto_tree_add_text(tree, tvb, offset, 2, "vType: %s", value->type->str);
@@ -1592,8 +1594,8 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
     proto_tree_add_text(tree, tvb, offset, 1, "vData2: %d", value->vData2);
     offset += 1;
 
-    baseType = value->vType & 0x00FF;
-    highType = value->vType & 0xFF00;
+    baseType = (enum vType)(value->vType & 0x00FF);
+    highType = (enum vType)(value->vType & 0xFF00);
 
     if (value->type == NULL) {
         goto not_supported;
@@ -2117,7 +2119,7 @@ static int parse_CInGroupSortAggregSet(tvbuff_t *tvb, int offset,
     tree = proto_item_add_subtree(item, ett_CInGroupSortAggregSet);
     va_end(ap);
 
-    type = tvb_get_guint8(tvb, offset);
+    type = (enum CInGroupSortAggregSet_type)tvb_get_guint8(tvb, offset);
     proto_tree_add_text(tree, tvb, offset, 1, "Type: 0x%02x", (unsigned)type);
     offset += 1;
 
@@ -3040,10 +3042,10 @@ proto_register_mswsp(void)
 }
 
 static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
-    smb_info_t *si = pinfo->private_data;
+    smb_info_t *si = (smb_info_t*)pinfo->private_data;
     gboolean in = si->request;
 
-    smb_transact_info_t *tri = (si->sip->extra_info_type == SMB_EI_TRI) ? si->sip->extra_info : NULL;
+    smb_transact_info_t *tri = (smb_transact_info_t *)((si->sip->extra_info_type == SMB_EI_TRI) ? si->sip->extra_info : NULL);
     smb_fid_info_t *fid_info = NULL;
     GSList *iter;
 
@@ -3059,7 +3061,7 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
     }
 
     for (iter = si->ct->GSL_fid_info; iter; iter = g_slist_next(iter)) {
-        smb_fid_info_t *info = iter->data;
+        smb_fid_info_t *info = (smb_fid_info_t *)iter->data;
         if ((info->tid == si->tid) && (info->fid == tri->fid)) {
             fid_info = info;
             break;
@@ -3082,7 +3084,7 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
 
 
 static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
-    smb2_info_t *si = pinfo->private_data;
+    smb2_info_t *si = (smb2_info_t*)pinfo->private_data;
     gboolean in = !(si->flags & SMB2_FLAGS_RESPONSE);
 
 //si->tree->share_type == SMB2_SHARE_TYPE_PIPE

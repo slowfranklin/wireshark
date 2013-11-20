@@ -2703,11 +2703,11 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 
 		proto_item *ti;
 		proto_tree *tr;
-		cmd = tvb_get_letohs(tvb, offset);
+		cmd = (sec_vt_command)tvb_get_letohs(tvb, offset);
 		len = tvb_get_letohs(tvb, offset + 2);
 		cmd_end = cmd & SEC_VT_COMMAND_END;
 		cmd_must = cmd & SEC_VT_MUST_PROCESS_COMMAND;
-		cmd &= SEC_VT_COMMAND_MASK;
+		cmd = (sec_vt_command)(cmd & SEC_VT_COMMAND_MASK);
 
 		ti = proto_tree_add_text(tree, tvb, offset, -1, "Command: %s",
 						     val_to_str(cmd, sec_vt_command_cmd_vals,

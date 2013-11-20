@@ -127,7 +127,7 @@ witness_dissect_notifyResponse_message(tvbuff_t *tvb, int offset, packet_info *p
 	unsigned n;
 
 //	struct notify_response *resp = pinfo->private_data;
-	struct notify_response *resp = notify_response;
+	struct notify_response *resp = (struct notify_response *)notify_response;
 
 	switch (resp->type) {
 	case CLIENT_MOVE:
