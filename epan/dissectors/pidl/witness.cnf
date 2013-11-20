@@ -4,11 +4,11 @@ MANUAL witness_dissect_struct_notifyResponse
 MANUAL witness_dissect_element_notifyResponse_message_buffer_
 MANUAL witness_dissect_enum_interfaceInfo_state
 
-TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv4 BASE_NONE 0 NULL 4
+TYPE ipv4address "offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, di, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv4 BASE_NONE 0 NULL 4
 
 #PARAM_VALUE witness_dissect_element_interfaceInfo_state PIDL_SET_COL_INFO
 
-TYPE ipv6address "offset=PIDL_dissect_ipv6address(tvb, offset, pinfo, tree, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv6 BASE_NONE 0 NULL 2
+TYPE ipv6address "offset=PIDL_dissect_ipv6address(tvb, offset, pinfo, tree, di, drep, @HF@, PIDL_SET_COL_INFO);" FT_IPv6 BASE_NONE 0 NULL 2
 
 HF_RENAME hf_witness_witness_interfaceInfo_group_name hf_dummy
 HF_FIELD hf_witness_witness_interfaceInfo_group_name "Group Name" "witness.witness_interfaceInfo.group_name" FT_STRING BASE_NONE NULL 0 "" "" ""

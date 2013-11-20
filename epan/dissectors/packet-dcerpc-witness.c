@@ -1,6 +1,6 @@
 /* DO NOT EDIT
 	This filter was automatically generated
-	from epan/dissectors/pidl/witness.idl and epan/dissectors/pidl/witness.cnf.
+	from pidl/witness.idl and pidl/witness.cnf.
 	
 	Pidl is a perl based IDL compiler for DCE/RPC idl files.
 	It is maintained by the Samba team, not the Wireshark team.
@@ -284,7 +284,7 @@ witness_dissect_element_interfaceInfo_state(tvbuff_t *tvb _U_, int offset _U_, p
 static int
 witness_dissect_element_interfaceInfo_ipv4(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, guint8 *drep _U_)
 {
-	offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, drep, hf_witness_witness_interfaceInfo_ipv4, PIDL_SET_COL_INFO);
+	offset=PIDL_dissect_ipv4address(tvb, offset, pinfo, tree, di, drep, hf_witness_witness_interfaceInfo_ipv4, PIDL_SET_COL_INFO);
 
 	return offset;
 }
@@ -292,7 +292,7 @@ witness_dissect_element_interfaceInfo_ipv4(tvbuff_t *tvb _U_, int offset _U_, pa
 static int
 witness_dissect_element_interfaceInfo_ipv6(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, dcerpc_info* di _U_, guint8 *drep _U_)
 {
-	offset=PIDL_dissect_ipv6address(tvb, offset, pinfo, tree, drep, hf_witness_witness_interfaceInfo_ipv6, PIDL_SET_COL_INFO);
+	offset=PIDL_dissect_ipv6address(tvb, offset, pinfo, tree, di, drep, hf_witness_witness_interfaceInfo_ipv6, PIDL_SET_COL_INFO);
 
 	return offset;
 }

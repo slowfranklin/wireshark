@@ -276,10 +276,9 @@ witness_dissect_element_interfaceInfo_group_name(tvbuff_t *tvb, int offset, pack
 }
 
 static int
-PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep _U_, int hfindex, guint32 param)
+PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, dcerpc_info *di, guint8 *drep _U_, int hfindex, guint32 param)
 {
 //	guint32 ip = tvb_get_ipv4(tvb,offset); //tvb_get_ntohl(tvb, offset);
-	dcerpc_info *di = pinfo->private_data;
 	if (di->conformant_run) {
 		/* just a run to handle conformant arrays, no scalars to dissect */
 		return offset;
@@ -305,10 +304,9 @@ PIDL_dissect_ipv4address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tr
 }
 
 static int
-PIDL_dissect_ipv6address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, guint8 *drep _U_, int hfindex, guint32 param)
+PIDL_dissect_ipv6address(tvbuff_t *tvb, int offset, packet_info *pinfo, proto_tree *tree, dcerpc_info *di, guint8 *drep _U_, int hfindex, guint32 param)
 {
 //	tvb_get_ipv6(tvb, offset, &addr);
-	dcerpc_info *di = pinfo->private_data;
 	if (di->conformant_run) {
 		/* just a run to handle conformant arrays, no scalars to dissect */
 		return offset;

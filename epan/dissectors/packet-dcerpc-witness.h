@@ -2,7 +2,7 @@
 
 /* DO NOT EDIT
 	This filter was automatically generated
-	from epan/dissectors/pidl/witness.idl and epan/dissectors/pidl/witness.cnf.
+	from pidl/witness.idl and pidl/witness.cnf.
 	
 	Pidl is a perl based IDL compiler for DCE/RPC idl files.
 	It is maintained by the Samba team, not the Wireshark team.
