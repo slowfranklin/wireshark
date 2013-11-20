@@ -455,7 +455,6 @@ DISSECTOR_SRC = \
 	packet-dcerpc-ubikdisk.c	\
 	packet-dcerpc-ubikvote.c	\
 	packet-dcerpc-update.c		\
-	packet-dcerpc.c			\
 	packet-dcm.c		\
 	packet-dcom-dispatch.c	\
 	packet-dcom-oxid.c	\
@@ -1082,7 +1081,6 @@ DISSECTOR_SRC = \
 	packet-smb-pipe.c	\
 	packet-smb-sidsnooping.c	\
 	packet-smb.c		\
-	packet-smb2.c		\
 	packet-sml.c		\
 	packet-smpp.c		\
 	packet-smtp.c		\
@@ -1262,7 +1260,10 @@ DISSECTOR_SRC = \
 DIRTY_DISSECTOR_SRC = \
 	packet-x11.c \
 	packet-mswsp.c \
-	packet-dcerpc-witness.c
+	packet-dcerpc-witness.c \
+	packet-dcerpc.c \
+	packet-smb2.c
+
 
 #
 # Headers for dissectors.
