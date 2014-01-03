@@ -2277,7 +2277,7 @@ int parse_CPidMapper(tvbuff_t *tvb, int offset,
 
 /* 2.2.1.35 CColumnGroup */
 int parse_CColumnGroup(tvbuff_t *tvb, int offset,
-                       proto_tree *parent_tree, proto_tree *pad_tree,
+                       proto_tree *parent_tree, proto_tree *pad_tree _U_,
                        const char *fmt, ...)
 {
     proto_tree *tree;
