@@ -1339,7 +1339,7 @@ static int vvalue_tvb_lpwstr(tvbuff_t *tvb , int offset, void *val)
 {
     struct data_str *str = (struct data_str*)val;
     gint len;
-    gchar *ptr;
+    const gchar *ptr;
 
     str->len = tvb_get_letohl(tvb, offset);
 
@@ -1529,7 +1529,7 @@ static struct vtype *vType_get_type(enum vType t) {
     return NULL;
 }
 
-static char *str_CBaseStorageVariant(struct CBaseStorageVariant *value, gboolean print_type)
+static const char *str_CBaseStorageVariant(struct CBaseStorageVariant *value, gboolean print_type)
 {
 
     emem_strbuf_t *strbuf = ep_strbuf_new(NULL);
