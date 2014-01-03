@@ -1573,7 +1573,8 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
     int i, len;
     proto_item *ti, *ti_type, *ti_val;
     proto_tree *tree, *tr;
-    enum vType baseType, highType;
+//    enum vType baseType;
+    enum vType highType;
 
     ZERO_STRUCT(*value);
 
@@ -1594,7 +1595,7 @@ static int parse_CBaseStorageVariant(tvbuff_t *tvb, int offset, proto_tree *pare
     proto_tree_add_text(tree, tvb, offset, 1, "vData2: %d", value->vData2);
     offset += 1;
 
-    baseType = (enum vType)(value->vType & 0x00FF);
+//    baseType = (enum vType)(value->vType & 0x00FF);
     highType = (enum vType)(value->vType & 0xFF00);
 
     if (value->type == NULL) {
@@ -1977,7 +1978,7 @@ static int parse_CAggregSpec(tvbuff_t *tvb, int offset,
     proto_tree *tree;
     va_list ap;
     guint8 type;
-    guint32 ccAlias, idColumn, ulMaxNumToReturn, idRepresentative;
+    guint32 ccAlias, idColumn;//, ulMaxNumToReturn, idRepresentative;
     const char *alias;
 
     va_start(ap, fmt);
