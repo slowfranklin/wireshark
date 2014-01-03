@@ -2655,7 +2655,8 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 }
 
 static int
-dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *parent_tree)
+dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_,
+                             proto_tree *parent_tree, int *signature_offset)
 {
 	static const guint8 TRAILER_SIGNATUR[] = {0x8a, 0xe3, 0x13, 0x71, 0x02, 0xf4, 0x36, 0x71};
 	typedef enum {
@@ -2672,6 +2673,9 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 
 	const guint8 *start, *pos;
 	int remaining = tvb_length_remaining(tvb, offset);
+
+        *signature_offset = -1;
+
 	if (remaining < (int)sizeof(TRAILER_SIGNATUR)) {
 		return offset;
 	}
@@ -2691,6 +2695,8 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, 
 		offset += len;
 		remaining -= len;
 	}
+
+        *signature_offset = offset;
 
 	proto_tree_add_text(tree, tvb, offset, sizeof(TRAILER_SIGNATUR),
 			    "rpc_sec_verification_trailer");
@@ -2944,13 +2950,26 @@ dcerpc_try_handoff(packet_info *pinfo, proto_tree *tree,
                  */
                 TRY {
                     int remaining;
+                    int trailer_offset = -1;
+
+                    proto_tree_add_text(dcerpc_tree, stub_tvb, 0, -1,
+                                        "Complete Stub Data");
 
                     offset = sub_dissect(stub_tvb, 0, pinfo, sub_tree,
                                           info, drep);
-		    proto_item_set_end(sub_item, tvb, offset);
 
                     offset = dissect_verification_trailer(stub_tvb, offset,
-							  pinfo, dcerpc_tree);
+                                                          pinfo, dcerpc_tree,
+                                                          &trailer_offset);
+
+                    if (trailer_offset != -1 && sub_item) {
+                        remaining = tvb_length_remaining(stub_tvb, trailer_offset);
+                        proto_item_set_len(sub_item, length - remaining);
+
+                        proto_tree_add_text(dcerpc_tree, stub_tvb,
+                                            0, length - remaining,
+                                            "Stub Data");
+                    }
 
                     /* If we have a subdissector and it didn't dissect all
                        data in the tvb, make a note of it. */
