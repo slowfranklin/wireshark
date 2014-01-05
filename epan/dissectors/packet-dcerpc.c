@@ -2507,6 +2507,10 @@ dissect_ndr_embedded_pointer(tvbuff_t *tvb, gint offset, packet_info *pinfo,
     return ret;
 }
 
+static int
+dissect_verification_trailer(tvbuff_t *tvb, int stub_offset,
+                             proto_tree *parent_tree, int *signature_offset);
+
 static void
 show_stub_data(tvbuff_t *tvb, gint offset, proto_tree *dcerpc_tree,
                dcerpc_auth_info *auth_info, gboolean is_encrypted)
@@ -2544,14 +2548,16 @@ show_stub_data(tvbuff_t *tvb, gint offset, proto_tree *dcerpc_tree,
             } else {
                 tvb_ensure_bytes_exist(tvb, offset, plain_length);
                 proto_tree_add_text(dcerpc_tree, tvb, offset, plain_length,
-                                    "Decrypted stub data (%d byte%s)",
+                                    "Decrypted complete stub data (%d byte%s)",
                                     plain_length, plurality(plain_length, "", "s"));
+                dissect_verification_trailer(tvb, offset, dcerpc_tree, NULL);
             }
         } else {
             tvb_ensure_bytes_exist(tvb, offset, plain_length);
             proto_tree_add_text(dcerpc_tree, tvb, offset, plain_length,
-                                "Stub data (%d byte%s)", plain_length,
+                                "Complete stub data (%d byte%s)", plain_length,
                                 plurality(plain_length, "", "s"));
+            dissect_verification_trailer(tvb, offset, dcerpc_tree, NULL);
         }
         /* If there is auth padding at the end of the stub, display it */
         if (auth_pad_len != 0) {
@@ -2655,9 +2661,10 @@ dissect_sec_vt_header(proto_tree *tree, tvbuff_t *tvb, int offset)
 }
 
 static int
-dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_,
+dissect_verification_trailer(tvbuff_t *tvb, int stub_offset,
                              proto_tree *parent_tree, int *signature_offset)
 {
+        int offset = stub_offset;
 	static const guint8 TRAILER_SIGNATUR[] = {0x8a, 0xe3, 0x13, 0x71, 0x02, 0xf4, 0x36, 0x71};
 	typedef enum {
 		SEC_VT_COMMAND_BITMASK_1    = 0x0001,
@@ -2674,29 +2681,41 @@ dissect_verification_trailer(tvbuff_t *tvb, int offset, packet_info *pinfo _U_,
 	const guint8 *start, *pos;
 	int remaining = tvb_length_remaining(tvb, offset);
 
-        *signature_offset = -1;
+        if (signature_offset != NULL) {
+            *signature_offset = -1;
+        }
 
 	if (remaining < (int)sizeof(TRAILER_SIGNATUR)) {
-		return offset;
+		return -1;
 	}
+        if (remaining > 512) {
+            offset = remaining - 512;
+        } else {
+            offset = 0;
+        }
+
 	start = tvb_get_ptr(tvb, offset, remaining);
 	pos = epan_memmem(start, remaining, TRAILER_SIGNATUR, sizeof(TRAILER_SIGNATUR));
 	if (!pos) {
-		return offset;
+		return -1;
 	}
-
-	item = proto_tree_add_text(parent_tree, tvb, offset, -1, "Verification Trailer");
-	tree = proto_item_add_subtree(item, ett_dcerpc_verification_trailer);
 
 	if (pos > start) {
 		int len = pos - start;
-		proto_tree_add_text(tree, tvb, offset, len,
-				    "Padding (%d byte%s)", len, plurality(len, "", "s"));
 		offset += len;
 		remaining -= len;
 	}
 
-        *signature_offset = offset;
+        proto_tree_add_text(parent_tree, tvb, 0, offset,
+                            "Stub data without rpc_sec_verification_trailer (%d byte%s)",
+                            offset, plurality(offset, "", "s"));
+
+        item = proto_tree_add_text(parent_tree, tvb, offset, -1, "Verification Trailer");
+        tree = proto_item_add_subtree(item, ett_dcerpc_verification_trailer);
+
+        if (signature_offset != NULL) {
+            *signature_offset = offset;
+        }
 
 	proto_tree_add_text(tree, tvb, offset, sizeof(TRAILER_SIGNATUR),
 			    "rpc_sec_verification_trailer");
@@ -2950,30 +2969,51 @@ dcerpc_try_handoff(packet_info *pinfo, proto_tree *tree,
                  */
                 TRY {
                     int remaining;
-                    int trailer_offset = -1;
+                    int trailer_start_offset = -1;
+                    int trailer_end_offset = -1;
 
-                    proto_tree_add_text(dcerpc_tree, stub_tvb, 0, -1,
-                                        "Complete Stub Data");
+                    proto_tree_add_text(dcerpc_tree, stub_tvb, 0, length,
+                                        "Complete stub data (%d byte%s)", length,
+                                        plurality(length, "", "s"));
+
+                    trailer_end_offset = dissect_verification_trailer(stub_tvb, 0,
+                                                          dcerpc_tree,
+                                                          &trailer_start_offset);
+
+                    if (trailer_end_offset != -1) {
+                        remaining = tvb_length_remaining(stub_tvb,
+                                                         trailer_start_offset);
+                        if (sub_item) {
+                                proto_item_set_len(sub_item, length - remaining);
+                        }
+                    }
 
                     offset = sub_dissect(stub_tvb, 0, pinfo, sub_tree,
                                           info, drep);
 
-                    offset = dissect_verification_trailer(stub_tvb, offset,
-                                                          pinfo, dcerpc_tree,
-                                                          &trailer_offset);
-
-                    if (trailer_offset != -1 && sub_item) {
-                        remaining = tvb_length_remaining(stub_tvb, trailer_offset);
-                        proto_item_set_len(sub_item, length - remaining);
-
-                        proto_tree_add_text(dcerpc_tree, stub_tvb,
-                                            0, length - remaining,
-                                            "Stub Data");
-                    }
-
                     /* If we have a subdissector and it didn't dissect all
                        data in the tvb, make a note of it. */
                     remaining = tvb_reported_length_remaining(stub_tvb, offset);
+
+                    if (trailer_end_offset != -1) {
+                        if (offset > trailer_start_offset) {
+                            remaining = offset - trailer_start_offset;
+                            proto_tree_add_text(sub_tree, stub_tvb,
+                                                trailer_start_offset,
+                                                remaining,
+                                                "[Payload with Verification Trailer (%d byte%s)]",
+                                                remaining,
+                                                plurality(remaining, "", "s"));
+                            col_append_fstr(pinfo->cinfo, COL_INFO,
+                                             "[Payload with Verification Trailer (%d byte%s)]",
+                                            remaining,
+                                            plurality(remaining, "", "s"));
+                            remaining = 0;
+                        } else {
+                            remaining = trailer_start_offset - offset;
+                        }
+                    }
+
                     if (remaining > 0) {
                         proto_tree_add_text(sub_tree, stub_tvb, offset,
                                             remaining,
