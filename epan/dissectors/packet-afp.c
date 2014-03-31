@@ -71,6 +71,7 @@ http://developer.apple.com/mac/library/documentation/Networking/Conceptual/AFP/I
 /* Forward declarations */
 void proto_register_afp(void);
 void proto_reg_handoff_afp(void);
+gint dissect_spotlight(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gint offset);
 
 /* from netatalk/include/afp.h */
 #define AFPTRANS_NONE          0
@@ -1024,8 +1025,6 @@ static int hf_afp_acl_access_bitmap_generic_read    = -1;
 /* Hash functions */
 static gint  afp_equal (gconstpointer v, gconstpointer v2);
 static guint afp_hash  (gconstpointer v);
-
-static gint dissect_spotlight(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gint offset);
 
 typedef struct {
 	guint32 conversation;
@@ -4405,7 +4404,7 @@ spotlight_dissect_query_loop(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
 	return offset;
 }
 
-static gint
+gint
 dissect_spotlight(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gint offset)
 {
 	guint encoding;
