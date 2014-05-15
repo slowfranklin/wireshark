@@ -4161,9 +4161,7 @@ dissect_smb2_FSCTL_PIPE_WAIT(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
 		name = "";
 	}
 
-	if (check_col(pinfo->cinfo, COL_INFO)) {
-		col_append_fstr(pinfo->cinfo, COL_INFO, " Pipe: %s", name);
-	}
+	col_append_fstr(pinfo->cinfo, COL_INFO, " Pipe: %s", name);
 
 	if (top_tree) {
 		proto_tree_add_string(top_tree, hf_smb2_fsctl_pipe_wait_name, tvb, offset + 14, name_len, name);
