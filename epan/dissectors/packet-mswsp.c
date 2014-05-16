@@ -2729,9 +2729,31 @@ static int dissect_CPMSetScopePrioritization(tvbuff_t *tvb, packet_info *pinfo, 
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
+static int dissect_CPMGetScopeStatistics(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
+
+    gint offset = 16;
+    proto_item *item;
+    proto_tree *tree;
+
+    item = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, in ? 0 : -1, ENC_NA);
+    tree = proto_item_add_subtree(item, ett_mswsp_msg);
+
+    proto_item_set_text(item, "GetScopeStatistics%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "GetScopeStatistics");
+
+    if (in) {
+        /* 2.2.3.33 */
+    } else {
+        /* 2.2.3.34 */
+        proto_tree_add_text(tree, tvb, offset, 4, "dwIndexedItems");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "dwOutstandingAdds");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "dwOustandingModifies");
+        offset += 4;
+    }
+
     return tvb_length(tvb);
 }
 
