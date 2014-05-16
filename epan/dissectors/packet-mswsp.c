@@ -2655,9 +2655,47 @@ static int dissect_CPMFetchValue(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetQueryStatusEx(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
+static int dissect_CPMGetQueryStatusEx(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
+    gint offset = 16;
+    proto_item *item;
+    proto_tree *tree;
+
+    item = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, -1, ENC_NA);
+    tree = proto_item_add_subtree(item, ett_mswsp_msg);
+
+    proto_item_set_text(item, "GetQueryStatusEx%s", in ? "In" : "Out");
     col_append_str(pinfo->cinfo, COL_INFO, "GetQueryStatusEx");
+
+    if (in) {
+        /* 2.2.3.8 */
+        proto_tree_add_text(tree, tvb, offset, 4, "hCursor");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "bmk");
+        offset += 4;
+    } else {
+        /* 2.2.3.9 */
+        proto_tree_add_text(tree, tvb, offset, 4, "QStatus");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cFilteredDocuments");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cDocumentsToFilter");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "dwRatioFinishedDenominator");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "dwRatioFinishedNumerator");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "iRowBmk");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cRowsTotal");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "maxRank");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "cResultsFound");
+        offset += 4;
+        proto_tree_add_text(tree, tvb, offset, 4, "whereID");
+        offset += 4;
+    }
     return tvb_length(tvb);
 }
 
