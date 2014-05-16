@@ -1498,7 +1498,7 @@ static struct vtype VT_TYPE[] = {
     {VT_DATE,              "VT_DATE",               8, vvalue_tvb_get8, vvalue_strbuf_append_r8},
 //    {VT_BSTR,              "VT_BSTR",              -1, vvalue_tvb_bstr, vvalue_strbuf_append_str},
     {VT_BSTR,              "VT_BSTR",              -1, vvalue_tvb_lpwstr, vvalue_strbuf_append_str},
-    {VT_ERROR,             "VT_ERROR",              8, vvalue_tvb_get4, vvalue_strbuf_append_ui4},
+    {VT_ERROR,             "VT_ERROR",              4, vvalue_tvb_get4, vvalue_strbuf_append_ui4},
     {VT_BOOL,              "VT_BOOL",               2, vvalue_tvb_get2, vvalue_strbuf_append_bool},
     {VT_VARIANT,           "VT_VARIANT",           -1, NULL, NULL},
     {VT_DECIMAL,           "VT_DECIMAL",           16, NULL, NULL},
