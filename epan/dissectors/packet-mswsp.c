@@ -44,6 +44,7 @@
 
 #include "packet-smb.h"
 #include "packet-smb2.h"
+#include "packet-dcom.h" /* HRESULT */
 
 /* IF PROTO exposes code to other dissectors, then it must be exported
    in a header file. If not, a header file is not needed at all. */
@@ -2951,9 +2952,9 @@ proto_register_mswsp(void)
 			"Message id", HFILL }
 		},
 		{ &hf_mswsp_hdr_status,
-			{ "Status", "mswsp.hdr.status",
-			FT_UINT32, BASE_HEX , NULL, 0,
-			"Status", HFILL }
+                  { "Status", "mswsp.hdr.status",
+                    FT_UINT32, BASE_HEX , VALS(dcom_hresult_vals), 0,
+                    "Status", HFILL }
 		},
 		{ &hf_mswsp_hdr_checksum,
 			{ "checksum", "mswsp.hdr.checksum",
