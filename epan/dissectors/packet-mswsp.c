@@ -2782,6 +2782,31 @@ static void debug_frame(int frame)
 
 }
 
+static const value_string msg_ids[] = {
+    {0x000000C8, "CPMConnect"},                /* In/Out */
+    {0x000000C9, "CPMDisconnect"},
+    {0x000000CA, "CPMCreateQuery"},            /* In/Out */
+    {0x000000CB, "CPMFreeCursor"},             /* In/Out */
+    {0x000000CC, "CPMGetRows"},                /* In/Out */
+    {0x000000CD, "CPMRatioFinished"},          /* In/Out */
+    {0x000000CE, "CPMCompareBmk"},             /* In/Out */
+    {0x000000CF, "CPMGetApproximatePosition"}, /* In/Out */
+    {0x000000D0, "CPMSetBindingsIn"},
+    {0x000000D1, "CPMGetNotify"},
+    {0x000000D2, "CPMSendNotifyOut"},
+    {0x000000D7, "CPMGetQueryStatusIn"},       /* In/Out */
+    {0x000000D9, "CPMCiStateInOut"},
+    {0x000000E4, "CPMFetchValue"},             /* In/Out */
+    {0x000000E7, "CPMGetQueryStatusEx"},       /* In/Out */
+    {0x000000E8, "CPMRestartPositionIn"},
+    {0x000000EC, "CPMSetCatStateIn"},          /* (not supported) */
+    {0x000000F1, "CPMGetRowsetNotify"},        /* In/Out */
+    {0x000000F2, "CPMFindIndices"},            /* In/Out */
+    {0x000000F3, "CPMSetScopePrioritization"}, /* In/Out */
+    {0x000000F4, "CPMGetScopeStatistics"},     /* In/Out */
+};
+
+
 int
 dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 {
@@ -2890,10 +2915,21 @@ dissect_mswsp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, gboolean in)
 
         proto_tree_add_item(hdr_tree, hf_mswsp_hdr_msg, tvb,
                             0, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_status,
-                            tvb, 4, 4, ENC_LITTLE_ENDIAN);
-        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_checksum,
-                            tvb, 8, 4, ENC_LITTLE_ENDIAN);
+        proto_item_append_text(hti, " %s", val_to_str(hdr.msg, VALS(msg_ids),
+                                                      "(Unknown: 0x%x)"));
+
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_status, tvb,
+                            4, 4, ENC_LITTLE_ENDIAN);
+        if (!in || hdr.status != 0) {
+            proto_item_append_text(hti, " %s",
+                                   val_to_str(hdr.status, VALS(dcom_hresult_vals),
+                                              "(Unknown: 0x%x)"));
+        }
+
+        proto_tree_add_item(hdr_tree, hf_mswsp_hdr_checksum, tvb,
+                            8, 4, ENC_LITTLE_ENDIAN);
+        /* todo: validate checksum */
+
         proto_tree_add_item(hdr_tree, hf_mswsp_hdr_reserved, tvb,
                             12, 4, ENC_LITTLE_ENDIAN);
     }
@@ -2917,29 +2953,6 @@ proto_register_mswsp(void)
 	module_t *mswsp_module;
 
 /* Setup list of header fields  See Section 1.6.1 for details*/
-        static const value_string msg_ids[] = {
-            {0x000000C8, "CPMConnect"},                /* In/Out */
-            {0x000000C9, "CPMDisconnect"},
-            {0x000000CA, "CPMCreateQuery"},            /* In/Out */
-            {0x000000CB, "CPMFreeCursor"},             /* In/Out */
-            {0x000000CC, "CPMGetRows"},                /* In/Out */
-            {0x000000CD, "CPMRatioFinished"},          /* In/Out */
-            {0x000000CE, "CPMCompareBmk"},             /* In/Out */
-            {0x000000CF, "CPMGetApproximatePosition"}, /* In/Out */
-            {0x000000D0, "CPMSetBindingsIn"},
-            {0x000000D1, "CPMGetNotify"},
-            {0x000000D2, "CPMSendNotifyOut"},
-            {0x000000D7, "CPMGetQueryStatusIn"},       /* In/Out */
-            {0x000000D9, "CPMCiStateInOut"},
-            {0x000000E4, "CPMFetchValue"},             /* In/Out */
-            {0x000000E7, "CPMGetQueryStatusEx"},       /* In/Out */
-            {0x000000E8, "CPMRestartPositionIn"},
-            {0x000000EC, "CPMSetCatStateIn"},          /* (not supported) */
-            {0x000000F1, "CPMGetRowsetNotify"},        /* In/Out */
-            {0x000000F2, "CPMFindIndices"},            /* In/Out */
-            {0x000000F3, "CPMSetScopePrioritization"}, /* In/Out */
-            {0x000000F4, "CPMGetScopeStatistics"},     /* In/Out */
-        };
 	static hf_register_info hf[] = {
 		{ &hf_mswsp_hdr,
 			{ "Header",           "mswsp.hdr",
