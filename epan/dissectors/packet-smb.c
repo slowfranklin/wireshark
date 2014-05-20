@@ -17030,6 +17030,8 @@ static int
 dissect_smb_command(tvbuff_t *tvb, packet_info *pinfo, int offset, proto_tree *smb_tree, guint8 cmd, gboolean first_pdu, smb_info_t *si)
 {
 	smb_saved_info_t *sip;
+	void *saved_pinfo_private_data = pinfo->private_data;
+	pinfo->private_data = si;
 
 	DISSECTOR_ASSERT(si);
 
@@ -17079,6 +17081,7 @@ dissect_smb_command(tvbuff_t *tvb, packet_info *pinfo, int offset, proto_tree *s
 		}
 		proto_item_set_end(cmd_item, tvb, offset);
 	}
+	pinfo->private_data = saved_pinfo_private_data;
 	return offset;
 }
 
