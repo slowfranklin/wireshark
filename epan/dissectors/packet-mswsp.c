@@ -3166,7 +3166,7 @@ proto_register_mswsp(void)
 	     10, &gPORT_PREF);
 }
 
-static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
+static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_) {
     smb_info_t *si = (smb_info_t*)pinfo->private_data;
     gboolean in = si->request;
 
@@ -3208,7 +3208,7 @@ static int dissect_mswsp_smb(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree
 }
 
 
-static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree) {
+static int dissect_mswsp_smb2(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data _U_) {
     smb2_info_t *si = (smb2_info_t*)pinfo->private_data;
     gboolean in = !(si->flags & SMB2_FLAGS_RESPONSE);
 
