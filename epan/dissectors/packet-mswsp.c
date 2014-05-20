@@ -2535,10 +2535,60 @@ static int dissect_CPMFreeCursor(tvbuff_t *tvb, packet_info *pinfo, proto_tree *
     return tvb_length(tvb);
 }
 
-static int dissect_CPMGetRows(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
+static int dissect_CPMGetRows(tvbuff_t *tvb, packet_info *pinfo, proto_tree *parent_tree, gboolean in)
 {
-    col_append_str(pinfo->cinfo, COL_INFO, "GetRows");
-    return tvb_length(tvb);
+     gint offset = 16;
+     proto_item *item;
+     proto_tree *tree;
+
+     item = proto_tree_add_item(parent_tree, hf_mswsp_msg, tvb, offset, in ? 0 : -1, ENC_NA);
+     tree = proto_item_add_subtree(item, ett_mswsp_msg);
+
+     proto_item_set_text(item, "GetRows%s", in ? "In" : "Out");
+     col_append_str(pinfo->cinfo, COL_INFO, "GetRows");
+
+     if (in) {
+         /* 2.2.3.11 */
+         guint32 type;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "hCursor");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "cRowsToTransfer");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "cbRowWidth");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "cbSeek");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "cbReserved");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "cbReadBuffer");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "ulClientBase");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "fBwdFetch");
+         offset += 4;
+
+         type = tvb_get_letohl(tvb, offset);
+         proto_tree_add_text(tree, tvb, offset, 4, "eType");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, 4, "chapt");
+         offset += 4;
+
+         proto_tree_add_text(tree, tvb, offset, type ? -1 : 0, "SeekDescription");
+
+     } else {
+         /* 2.2.3.12 */
+     }
+
+     return tvb_length(tvb);
 }
 
 static int dissect_CPMRatioFinished(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree _U_, gboolean in _U_)
